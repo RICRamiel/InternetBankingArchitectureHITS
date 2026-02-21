@@ -25,6 +25,12 @@ public class UsersController {
         return userMapper.toDto(usersService.getUserById(id));
     }
 
+    @GetMapping("{id}/isActive")
+    @PreAuthorize("hasRole('ADMIN') OR @accessChecker.isSelf(#id)")
+    public Boolean isUserActiveById(@PathVariable("id") @Param("id") UUID id) {
+        return usersService.getUserById(id).isActive();
+    }
+
     @DeleteMapping("{id}")
     @PreAuthorize("hasRole('ADMIN') OR @accessChecker.isSelf(#id)")
     public void deleteUserById(@PathVariable("id") @Param("id") UUID id) {
