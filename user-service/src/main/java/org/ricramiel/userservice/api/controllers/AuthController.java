@@ -15,6 +15,7 @@ import org.ricramiel.userservice.api.mappers.JwtModelMapper;
 import org.ricramiel.userservice.api.mappers.LoginModelMapper;
 import org.ricramiel.userservice.api.mappers.RegisterModelMapper;
 import org.ricramiel.userservice.domain.services.AuthService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -61,6 +62,7 @@ public class AuthController {
         authService.revoke(request.getValue());
     }
 
+    @PreAuthorize("hasRole('WORKER')")
     @PostMapping("register")
     public JwtModelDto register(@Valid @RequestBody RegisterModelDto request) {
         return jwtModelMapper.toDto(
