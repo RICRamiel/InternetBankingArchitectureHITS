@@ -7,8 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface TransactionOperationRepository extends JpaRepository<TransactionOperation, Long> {
-    Page<TransactionOperation> findAllByAccountId(Long accountId, Pageable pageable);
+public interface TransactionOperationRepository extends JpaRepository<TransactionOperation, UUID> {
+    Page<TransactionOperation> findAllByAccountId(UUID accountId, Pageable pageable);
 }

@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -16,36 +17,36 @@ public class CardAccountServiceImpl implements CardAccountService {
     private final CardAccountRepository cardAccountRepository;
 
     @Override
-    public void enroll(Long accountId, BigDecimal amount) {
+    public void enroll(UUID accountId, BigDecimal amount) {
     }
 
     @Override
-    public void withdraw(Long accountId, BigDecimal amount) {
+    public void withdraw(UUID accountId, BigDecimal amount) {
 
     }
 
     @Override
-    public Boolean checkAccountExistance(Long accountId) {
+    public Boolean checkAccountExistance(UUID accountId) {
         return null;
     }
 
     @Override
-    public CardAccount createAccount(Long userId) {
+    public CardAccount createAccount(UUID userId) {
         return null;
     }
 
     @Override
-    public Boolean closeAccount(Long accountId) {
+    public Boolean closeAccount(UUID accountId) {
         return null;
     }
 
     @Override
-    public Page<CardAccount> getUserCardAccounts(Long userId, Pageable pageable) {
+    public Page<CardAccount> getUserCardAccounts(UUID userId, Pageable pageable) {
         return null;
     }
 
     @Override
-    public CardAccount getAccountById(Long accountId) {
+    public CardAccount getAccountById(UUID accountId) {
         return null;
     }
 }

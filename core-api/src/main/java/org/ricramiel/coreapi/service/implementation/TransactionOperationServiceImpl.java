@@ -8,13 +8,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionOperationServiceImpl implements TransactionOperationService {
     private final TransactionOperationRepository transactionOperationRepository;
 
     @Override
-    public Page<TransactionOperation> findByAccountId(Long accountId, Pageable pageable) {
+    public Page<TransactionOperation> findByAccountId(UUID accountId, Pageable pageable) {
         return transactionOperationRepository.findAllByAccountId(accountId, pageable);
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/transactions")
@@ -22,17 +23,17 @@ public class TransactionOperationController {
     private final CardAccountService cardAccountService;
 
     @GetMapping()
-    public ResponseEntity<Page<TransactionOperation>> getTransactionOperations(Long userId, Pageable pageable) {
+    public ResponseEntity<Page<TransactionOperation>> getTransactionOperations(UUID userId, Pageable pageable) {
         return ResponseEntity.ok(transactionOperationService.findByAccountId(userId, pageable));
     }
 
     @PostMapping("/enroll")
-    public void EnrollMoney(Long accountId, BigDecimal amount) {
+    public void EnrollMoney(UUID accountId, BigDecimal amount) {
         cardAccountService.enroll(accountId, amount);
     }
 
     @PostMapping("/withdraw")
-    public void WithdrawMoney(Long accountId, BigDecimal amount) {
+    public void WithdrawMoney(UUID accountId, BigDecimal amount) {
         cardAccountService.withdraw(accountId, amount);
     }
 }

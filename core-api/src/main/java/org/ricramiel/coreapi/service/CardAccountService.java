@@ -6,14 +6,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
 public interface CardAccountService {
-    void enroll(Long accountId, BigDecimal amount);
-    void withdraw(Long accountId, BigDecimal amount);
-    Boolean checkAccountExistance(Long accountId);
-    CardAccount createAccount(Long userId);
-    Boolean closeAccount(Long accountId);
-    Page<CardAccount> getUserCardAccounts(Long userId, Pageable pageable);
-    CardAccount getAccountById(Long accountId);
+    void enroll(UUID accountId, BigDecimal amount);
+    void withdraw(UUID accountId, BigDecimal amount);
+    Boolean checkAccountExistance(UUID accountId);
+    CardAccount createAccount(UUID userId);
+    Boolean closeAccount(UUID accountId);
+    Page<CardAccount> getUserCardAccounts(UUID userId, Pageable pageable);
+    CardAccount getAccountById(UUID accountId);
 }
