@@ -1,0 +1,25 @@
+package org.ricramiel.creditservice.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Entity
+@Data
+@Table(name = "credit")
+public class Credit {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private UUID id;
+
+    private UUID userId;
+    private UUID cardAccount;
+    private BigDecimal debt;
+    private BigDecimal totalDebt;
+
+    @ManyToOne
+    @JoinColumn(name = "credit_rule_id")
+    private CreditRule creditRule;
+}

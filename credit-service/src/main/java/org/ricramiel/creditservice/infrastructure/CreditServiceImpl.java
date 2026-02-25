@@ -1,0 +1,59 @@
+package org.ricramiel.creditservice.infrastructure;
+
+import lombok.RequiredArgsConstructor;
+import org.ricramiel.creditservice.dto.CreditDTO;
+import org.ricramiel.creditservice.mapper.CreditMapper;
+import org.ricramiel.creditservice.model.Credit;
+import org.ricramiel.creditservice.repository.CreditRepository;
+import org.ricramiel.creditservice.service.CreditService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class CreditServiceImpl implements CreditService {
+
+    private final CreditRepository creditRepository;
+
+    @Override
+    @Transactional
+    public Credit createCredit(CreditDTO creditDTO) {
+        return creditRepository.save(CreditMapper.toCredit(creditDTO));
+    }
+
+    @Override
+    @Transactional
+    public void deleteCredit(UUID creditId) {
+        creditRepository.deleteById(creditId);
+    }
+
+    @Override
+    public List<Credit> getByUserId(UUID userId) {
+        return creditRepository.findByUserId(userId);
+    }
+
+    @Override
+    public Page<Credit> findAllPageable(int size, int offset) {
+        return creditRepository.findAllPageable(PageRequest.of(size, offset));
+    }
+
+    @Override
+    public Credit getByCardAccountId(UUID cardAccountId) {
+        return creditRepository.findByCardAccountId(cardAccountId);
+    }
+
+    @Override
+    @Transactional
+    public Credit makeEnrollment(UUID cardAccountId, BigDecimal money) {
+        Credit credit = getByCardAccountId(cardAccountId);
+        credit.setDebt(credit.getDebt().subtract(money));
+        creditRepository.save(credit);
+        return creditRepository.findByCardAccountId(cardAccountId);
+    }
+}
