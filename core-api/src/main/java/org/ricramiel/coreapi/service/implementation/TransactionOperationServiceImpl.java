@@ -15,6 +15,6 @@ public class TransactionOperationServiceImpl implements TransactionOperationServ
 
     @Override
     public Page<TransactionOperation> findByAccountId(Long accountId, Pageable pageable) {
-        return null;
+        return transactionOperationRepository.findAllByAccountId(accountId, pageable);
     }
 }
