@@ -1,6 +1,9 @@
 package org.ricramiel.creditservice.infrastructure;
 
+import com.google.type.Money;
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.creditservice.client.CoreClient;
 import org.ricramiel.creditservice.enums.PercentageStrategy;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
@@ -22,6 +25,7 @@ public class ScheduledService {
 
     private final CreditService creditService;
     private final CreditRepository creditRepository;
+    private final CoreClient coreClient;
 
     @Scheduled(fixedRate = 120_000)
     @Transactional
@@ -49,8 +53,8 @@ public class ScheduledService {
             offset += size;
             credits = creditService.findAllPageable(size, offset);
             credits.forEach(credit -> {
-                withdraw(credit.getCardAccount());
-                creditRepository.save(credit);
+                CreditRule creditRule = credit.getCreditRule();
+                withdraw(credit.getCardAccount(), credit.getDebt().add(creditRule.getPercentage().multiply(credit.getDebt().subtract(credit.getDebt()))));
             });
         }
     }
@@ -64,7 +68,10 @@ public class ScheduledService {
     }
 
     @Transactional
-    private void withdraw(UUID cardAccountId){
-        
+    private void withdraw(UUID cardAccountId, BigDecimal money){
+        WithdrawDto withdrawDto = new WithdrawDto();
+        withdrawDto.setCardAccountId(cardAccountId);
+        withdrawDto.setSum(money);
+        coreClient.askForWithdraw(withdrawDto);
     }
 }

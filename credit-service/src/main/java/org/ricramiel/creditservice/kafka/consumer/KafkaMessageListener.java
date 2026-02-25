@@ -10,9 +10,8 @@ public class KafkaMessageListener {
     @KafkaListener(topics = "transactionWithdraw", groupId = "zxc")
     public void listenWithAck(EventDto eventDto, Acknowledgment acknowledgment) {
         try {
-            System.out.println("Получено сообщение: " + message);
-            // Обработка сообщения
-            acknowledgment.acknowledge(); // Подтверждаем обработку
+
+            acknowledgment.acknowledge();
         } catch (Exception e) {
             System.err.println("Ошибка обработки: " + e.getMessage());
             // Не подтверждаем - сообщение будет обработано снова
