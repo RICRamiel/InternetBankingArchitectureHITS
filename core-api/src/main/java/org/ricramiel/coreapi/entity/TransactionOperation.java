@@ -17,6 +17,7 @@ import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Table(name = "transactionOperation")
@@ -26,7 +27,7 @@ import java.math.BigDecimal;
 public class TransactionOperation {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private Long id;
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "account_id")

@@ -12,6 +12,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 
 @Entity
@@ -20,9 +21,9 @@ import java.util.List;
 public class CardAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
-    private Long userId;
+    private UUID userId;
 
     private BigDecimal money;
 

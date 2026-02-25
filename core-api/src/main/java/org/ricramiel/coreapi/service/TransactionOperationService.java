@@ -5,7 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public interface TransactionOperationService {
-    Page<TransactionOperation> findByAccountId(Long accountId, Pageable pageable);
+    Page<TransactionOperation> findByAccountId(UUID accountId, Pageable pageable);
 }
