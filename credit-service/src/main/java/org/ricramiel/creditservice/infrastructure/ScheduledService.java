@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +23,7 @@ public class ScheduledService {
     private final CreditService creditService;
     private final CreditRepository creditRepository;
 
-    @Scheduled(fixedRate = 60_000)
+    @Scheduled(fixedRate = 120_000)
     @Transactional
     private void interestUpdater() {
         int size = 100;
@@ -38,11 +39,32 @@ public class ScheduledService {
         }
     }
 
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    private void moneyCall(){
+        int size = 100;
+        int offset = 0;
+        Page<Credit> credits = creditService.findAllPageable(size, offset);
+        while (!credits.isEmpty()) {
+            offset += size;
+            credits = creditService.findAllPageable(size, offset);
+            credits.forEach(credit -> {
+                withdraw(credit.getCardAccount());
+                creditRepository.save(credit);
+            });
+        }
+    }
+
     private void counter(Credit credit) {
         BigDecimal debt = credit.getDebt();
         CreditRule creditRule = credit.getCreditRule();
         if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
             credit.setDebt(debt.add(debt.multiply(creditRule.getPercentage())));
         }
+    }
+
+    @Transactional
+    private void withdraw(UUID cardAccountId){
+        
     }
 }
