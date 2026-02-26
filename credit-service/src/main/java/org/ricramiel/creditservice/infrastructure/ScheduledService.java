@@ -1,6 +1,5 @@
 package org.ricramiel.creditservice.infrastructure;
 
-import com.google.type.Money;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.creditservice.client.CoreClient;
@@ -29,7 +28,7 @@ public class ScheduledService {
 
     @Scheduled(fixedRate = 120_000)
     @Transactional
-    private void interestUpdater() {
+    protected void interestUpdater() {
         int size = 100;
         int offset = 0;
         Page<Credit> credits = creditService.findAllPageable(size, offset);
@@ -45,7 +44,7 @@ public class ScheduledService {
 
     @Scheduled(fixedRate = 60_000)
     @Transactional
-    private void moneyCall(){
+    protected void moneyCall(){
         int size = 100;
         int offset = 0;
         Page<Credit> credits = creditService.findAllPageable(size, offset);
@@ -68,7 +67,7 @@ public class ScheduledService {
     }
 
     @Transactional
-    private void withdraw(UUID cardAccountId, BigDecimal money){
+    protected void withdraw(UUID cardAccountId, BigDecimal money){
         WithdrawDto withdrawDto = new WithdrawDto();
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);

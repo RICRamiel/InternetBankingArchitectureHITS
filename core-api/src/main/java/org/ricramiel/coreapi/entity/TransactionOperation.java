@@ -1,6 +1,5 @@
 package org.ricramiel.coreapi.entity;
 
-import com.google.type.DateTime;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -17,6 +16,7 @@ import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -33,7 +33,7 @@ public class TransactionOperation {
     @JoinColumn(name = "account_id")
     private CardAccount account;
 
-    private DateTime dateTime;
+    private LocalDateTime dateTime;
 
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
