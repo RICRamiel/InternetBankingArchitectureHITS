@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@EnableScheduling
 public class ScheduledService {
 
     private final CreditService creditService;
@@ -30,11 +29,11 @@ public class ScheduledService {
     @Transactional
     protected void interestUpdater() {
         int size = 100;
-        int offset = 0;
-        Page<Credit> credits = creditService.findAllPageable(size, offset);
+        int pageNumber = 0;
+        Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
         while (!credits.isEmpty()) {
-            offset += size;
-            credits = creditService.findAllPageable(size, offset);
+            pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
             credits.forEach(credit -> {
                 counter(credit);
                 creditRepository.save(credit);
@@ -46,11 +45,11 @@ public class ScheduledService {
     @Transactional
     protected void moneyCall(){
         int size = 100;
-        int offset = 0;
-        Page<Credit> credits = creditService.findAllPageable(size, offset);
+        int pageNumber = 0;
+        Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
         while (!credits.isEmpty()) {
-            offset += size;
-            credits = creditService.findAllPageable(size, offset);
+            pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
             credits.forEach(credit -> {
                 CreditRule creditRule = credit.getCreditRule();
                 withdraw(credit.getCardAccount(), credit.getDebt().add(creditRule.getPercentage().multiply(credit.getDebt().subtract(credit.getDebt()))));

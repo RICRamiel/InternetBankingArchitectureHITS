@@ -13,7 +13,7 @@ import java.util.UUID;
 @Table(name = "credit_rule")
 public class CreditRule {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Enumerated

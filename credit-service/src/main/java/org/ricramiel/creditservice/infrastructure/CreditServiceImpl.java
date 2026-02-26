@@ -39,13 +39,13 @@ public class CreditServiceImpl implements CreditService {
     }
 
     @Override
-    public Page<Credit> findAllPageable(int size, int offset) {
-        return creditRepository.findAllPageable(PageRequest.of(size, offset));
+    public Page<Credit> findAllPageable(int pageNumber, int size) {
+        return creditRepository.findAll(PageRequest.of(pageNumber, size));
     }
 
     @Override
     public Credit getByCardAccountId(UUID cardAccountId) {
-        return creditRepository.findByCardAccountId(cardAccountId);
+        return creditRepository.findByCardAccount(cardAccountId);
     }
 
     @Override
@@ -54,6 +54,6 @@ public class CreditServiceImpl implements CreditService {
         Credit credit = getByCardAccountId(cardAccountId);
         credit.setDebt(credit.getDebt().subtract(money));
         creditRepository.save(credit);
-        return creditRepository.findByCardAccountId(cardAccountId);
+        return creditRepository.findByCardAccount(cardAccountId);
     }
 }
