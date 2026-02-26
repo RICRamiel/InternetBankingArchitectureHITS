@@ -1,4 +1,4 @@
-package org.ricramiel.coreapi.config;
+package org.ricramiel.creditservice.configurations;
 
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.headers.security.SecurityHeadersPropagationFilter;

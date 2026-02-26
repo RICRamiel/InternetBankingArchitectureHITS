@@ -1,4 +1,4 @@
-package org.ricramiel.coreapi.config;
+package org.ricramiel.creditservice.configurations;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
