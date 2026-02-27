@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication(
         scanBasePackages = {
-                "org.ricramiel.common"
+                "org.ricramiel.common", "org.ricramiel.creditservice"
         })
 public class CreditServiceApplication {
 

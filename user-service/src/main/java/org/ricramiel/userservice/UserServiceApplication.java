@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(
         scanBasePackages = {
-                "org.ricramiel.common"
+                "org.ricramiel.common", "org.ricramiel.userservice"
         })
 public class UserServiceApplication {
 

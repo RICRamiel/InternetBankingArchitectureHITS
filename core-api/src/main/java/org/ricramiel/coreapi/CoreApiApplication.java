@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(
         scanBasePackages = {
-                "org.ricramiel.common", "org.ricramiel"}
+                "org.ricramiel.common", "org.ricramiel.coreapi"}
         )
 public class CoreApiApplication {
     public static void main(String[] args) {
