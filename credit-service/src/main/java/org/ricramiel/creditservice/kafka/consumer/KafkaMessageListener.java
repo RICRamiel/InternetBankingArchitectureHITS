@@ -9,6 +9,7 @@ import org.ricramiel.creditservice.infrastructure.CreditServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -22,8 +23,8 @@ public class KafkaMessageListener {
     private String appDestination;
 
     private final CreditServiceImpl creditService;
-    @KafkaListener(topics = "${app.kafka.topics.withdraw}", groupId = "zxc")
-    public void listenWithAck(EventWithdrawDto eventWithdrawDto, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "${app.kafka.topics.withdraw}", groupId = "withdraw")
+    public void listenWithAck(@Payload EventWithdrawDto eventWithdrawDto, Acknowledgment acknowledgment) {
         try {
             WithdrawDto withdrawDto = eventWithdrawDto.getData();
             if (!Objects.equals(withdrawDto.getDestination(), appDestination)){
