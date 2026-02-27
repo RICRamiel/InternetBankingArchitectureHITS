@@ -1,6 +1,7 @@
 package org.ricramiel.creditservice.infrastructure;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.creditservice.client.CoreClient;
 import org.ricramiel.creditservice.enums.PercentageStrategy;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScheduledService {
@@ -31,13 +33,19 @@ public class ScheduledService {
         int size = 100;
         int pageNumber = 0;
         Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
+
         while (!credits.isEmpty()) {
-            pageNumber++;
-            credits = creditService.findAllPageable(pageNumber, size);
             credits.forEach(credit -> {
-                counter(credit);
+                CreditRule creditRule = credit.getCreditRule();
+                if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
+                    BigDecimal interest = calcInterest(credit.getTotalDebt(), creditRule.getPercentage());
+                    credit.setDebt(credit.getDebt().add(interest));
+                    credit.setTotalDebt(credit.getTotalDebt().subtract(interest));
+                }
                 creditRepository.save(credit);
             });
+            credits = creditService.findAllPageable(pageNumber, size);
+            pageNumber++;
         }
     }
 
@@ -57,12 +65,8 @@ public class ScheduledService {
         }
     }
 
-    private void counter(Credit credit) {
-        BigDecimal debt = credit.getDebt();
-        CreditRule creditRule = credit.getCreditRule();
-        if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
-            credit.setDebt(debt.add(debt.multiply(creditRule.getPercentage())));
-        }
+    private BigDecimal calcInterest(BigDecimal to, BigDecimal percentage) {
+        return to.multiply(percentage).divide(new BigDecimal(100));
     }
 
     @Transactional
