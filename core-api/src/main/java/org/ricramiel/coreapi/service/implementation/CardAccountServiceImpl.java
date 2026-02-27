@@ -64,6 +64,7 @@ public class CardAccountServiceImpl implements CardAccountService {
                 .orElseThrow(() -> new NotFoundException("Account not found"));
         account.setMoney(account.getMoney().subtract(withdrawDto.getSum()));
         cardAccountRepository.save(account);
+
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
         transactionOperation.setMoney(withdrawDto.getSum());
@@ -71,6 +72,7 @@ public class CardAccountServiceImpl implements CardAccountService {
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
         transactionOperation.setDateTime(LocalDateTime.now());
         transactionOperationRepository.save(transactionOperation);
+
         EventWithdrawDto eventWithdrawDto = new EventWithdrawDto(UUID.randomUUID(), withdrawDto, LocalDateTime.now(), TYPE_WITHDRAW);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + withdrawDto.getDestination());
