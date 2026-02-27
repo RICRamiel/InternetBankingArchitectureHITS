@@ -70,6 +70,7 @@ public class ScheduledService {
         WithdrawDto withdrawDto = new WithdrawDto();
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);
+        withdrawDto.setDestination("credit");
         coreClient.askForWithdraw(withdrawDto);
     }
 }
