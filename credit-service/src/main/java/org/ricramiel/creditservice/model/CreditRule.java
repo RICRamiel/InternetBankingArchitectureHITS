@@ -20,7 +20,7 @@ public class CreditRule {
     @Enumerated
     private PercentageStrategy percentageStrategy;
 
-    private Duration collectionPeriod;
+    private Integer collectionPeriodSeconds;
     private LocalDateTime openingDate;
     private String ruleName;
     private BigDecimal percentage;
