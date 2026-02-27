@@ -12,7 +12,7 @@ public class CreditRuleMapper {
         CreditRule creditRule = new CreditRule();
         creditRule.setRuleName(creditRuleDTO.getRuleName());
         creditRule.setPercentage(creditRuleDTO.getPercentage());
-        creditRule.setCollectionPeriod(creditRuleDTO.getCollectionPeriodSeconds());
+        creditRule.setCollectionPeriodSeconds(creditRuleDTO.getCollectionPeriodSeconds());
         creditRule.setOpeningDate(creditRuleDTO.getOpeningDate());
         creditRule.setPercentageStrategy(creditRuleDTO.getPercentageStrategy());
 
