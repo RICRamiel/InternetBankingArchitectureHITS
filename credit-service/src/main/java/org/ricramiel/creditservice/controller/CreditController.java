@@ -41,7 +41,8 @@ public class CreditController {
     }
 
     @PostMapping("/{cardAccountId}/enrollment")
-    public ResponseEntity<Credit> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,@RequestParam BigDecimal money){
+    public ResponseEntity<Credit> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
+                                                 @RequestParam("money") BigDecimal money){
         return ResponseEntity.ok(creditService.makeEnrollment(cardAccountId, money));
     }
 }

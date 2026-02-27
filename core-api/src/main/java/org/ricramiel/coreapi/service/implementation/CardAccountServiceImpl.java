@@ -32,7 +32,7 @@ public class CardAccountServiceImpl implements CardAccountService {
     private final CardAccountRepository cardAccountRepository;
     private final OutboxRepository outboxRepository;
     private final TransactionOperationRepository transactionOperationRepository;
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     @Value("type.withdraw")
     private String TYPE_WITHDRAW;

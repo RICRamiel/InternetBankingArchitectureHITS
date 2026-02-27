@@ -55,13 +55,14 @@ public class ScheduledService {
         int size = 100;
         int pageNumber = 0;
         Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
+
         while (!credits.isEmpty()) {
-            pageNumber++;
-            credits = creditService.findAllPageable(pageNumber, size);
             credits.forEach(credit -> {
                 CreditRule creditRule = credit.getCreditRule();
                 withdraw(credit.getCardAccount(), credit.getDebt().add(creditRule.getPercentage().multiply(credit.getDebt().subtract(credit.getDebt()))));
             });
+            credits = creditService.findAllPageable(pageNumber, size);
+            pageNumber++;
         }
     }
 
