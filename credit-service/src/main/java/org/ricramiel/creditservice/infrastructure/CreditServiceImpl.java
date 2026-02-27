@@ -38,6 +38,7 @@ public class CreditServiceImpl implements CreditService {
                 .totalDebt(creditDTO.getTotalDebt())
                 .debt(BigDecimal.ZERO)
                 .cardAccount(creditDTO.getCardAccount())
+                .userId(creditDTO.getUserId())
                 .build();
         return creditRepository.save(credit);
     }
