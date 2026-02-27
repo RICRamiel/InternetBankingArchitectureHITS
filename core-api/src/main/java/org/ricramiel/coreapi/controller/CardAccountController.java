@@ -20,9 +20,14 @@ import java.util.UUID;
 public class CardAccountController {
     private final CardAccountService cardAccountService;
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<Page<CardAccount>> getUserCardAccounts(UUID userId, Pageable pageable) {
-        return ResponseEntity.ok(cardAccountService.getUserCardAccounts(userId,pageable));
+        return ResponseEntity.ok(cardAccountService.getUserCardAccounts(userId, pageable));
+    }
+
+    @GetMapping()
+    public ResponseEntity<CardAccount> getUserCardAccount(UUID accountId) {
+        return ResponseEntity.ok(cardAccountService.getAccountById(accountId));
     }
 
     @GetMapping("/exists")

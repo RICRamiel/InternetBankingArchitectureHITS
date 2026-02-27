@@ -1,6 +1,7 @@
 package org.ricramiel.coreapi.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.dtos.EnrollDto;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.coreapi.entity.TransactionOperation;
 import org.ricramiel.coreapi.service.CardAccountService;
@@ -30,12 +31,12 @@ public class TransactionOperationController {
     }
 
     @PostMapping("/enroll")
-    public void EnrollMoney(UUID accountId, BigDecimal amount) {
-        cardAccountService.enroll(accountId, amount);
+    public void enrollMoney(@RequestBody EnrollDto enrollDto) {
+        cardAccountService.enroll(enrollDto);
     }
 
     @PostMapping("/withdraw")
-    public void WithdrawMoney(@RequestBody WithdrawDto withdrawDto) {
+    public void withdrawMoney(@RequestBody WithdrawDto withdrawDto) {
         cardAccountService.withdraw(withdrawDto);
     }
 }
