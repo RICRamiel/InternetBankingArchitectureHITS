@@ -3,12 +3,12 @@ package org.ricramiel.coreapi.service.implementation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.dtos.EventWithdrawDto;
 import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.repository.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,8 +23,9 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class KafkaService {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaService.class);
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, EventWithdrawDto> kafkaTemplate;
     private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
 
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
@@ -45,10 +46,12 @@ public class KafkaService {
 
     private void sendToKafka(OutboxEvent outboxEventEntity) {
         try {
-            CompletableFuture<SendResult<String, String>> sendResult = kafkaTemplate.send(outboxEventEntity.getOutboxTopic(), outboxEventEntity.getPayload());
-            SendResult<String, String> result = sendResult.get();
+            CompletableFuture<SendResult<String, EventWithdrawDto>> sendResult = kafkaTemplate.send(
+                    outboxEventEntity.getOutboxTopic(),
+                    objectMapper.readValue(outboxEventEntity.getPayload(), EventWithdrawDto.class));
+            SendResult<String, EventWithdrawDto> result = sendResult.get();
             LOG.info("Partition: {}", result.getRecordMetadata().partition());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
             LOG.error("Error sending event to Kafka: {}", e.getMessage());
         }
     }

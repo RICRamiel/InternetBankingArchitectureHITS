@@ -15,9 +15,9 @@ public class WithdrawOperationProducer {
     private String topic;
 
     private final ObjectMapper objectMapper;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, EventWithdrawDto> kafkaTemplate;
 
     public void sendTransactionOperation(EventWithdrawDto event) throws JsonProcessingException {
-        kafkaTemplate.send(topic, objectMapper.writeValueAsString(event));
+        kafkaTemplate.send(topic, event);
     }
 }
