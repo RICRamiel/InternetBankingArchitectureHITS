@@ -34,10 +34,10 @@ public class CardAccountServiceImpl implements CardAccountService {
     private final TransactionOperationRepository transactionOperationRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("type.withdraw")
+    @Value("${type.withdraw}")
     private String TYPE_WITHDRAW;
 
-    @Value("spring.kafka.topic.withdraw_transaction")
+    @Value("${spring.kafka.topic.withdraw_transaction}")
     private String WITHDRAW_TRANSACTION_TOPIC;
 
     @Override
