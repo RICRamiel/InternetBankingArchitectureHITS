@@ -18,12 +18,15 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class KafkaMessageListener {
 
+    @Value("${app.kafka.destination}")
+    private String appDestination;
+
     private final CreditServiceImpl creditService;
     @KafkaListener(topics = "${app.kafka.topics.withdraw}", groupId = "zxc")
     public void listenWithAck(EventWithdrawDto eventWithdrawDto, Acknowledgment acknowledgment) {
         try {
             WithdrawDto withdrawDto = eventWithdrawDto.getData();
-            if (!Objects.equals(withdrawDto.getDestination(), "credit")){
+            if (!Objects.equals(withdrawDto.getDestination(), appDestination)){
                 log.error("Received unexpected withdraw event with destination {}", withdrawDto.getDestination());
                 acknowledgment.acknowledge();
             }
