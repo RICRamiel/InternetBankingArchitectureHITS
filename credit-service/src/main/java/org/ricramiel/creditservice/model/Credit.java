@@ -1,6 +1,7 @@
 package org.ricramiel.creditservice.model;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -8,6 +9,7 @@ import java.util.UUID;
 
 @Entity
 @Data
+@Builder
 @Table(name = "credit")
 public class Credit {
     @Id

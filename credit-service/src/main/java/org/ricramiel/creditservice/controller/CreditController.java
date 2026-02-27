@@ -1,6 +1,7 @@
 package org.ricramiel.creditservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.dto.CreditDTO;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.service.CreditService;
@@ -20,7 +21,7 @@ public class CreditController {
     private final CreditService creditService;
 
     @PostMapping("/create")
-    public ResponseEntity<Credit> createCredit(@RequestBody CreditDTO creditDTO){
+    public ResponseEntity<Credit> createCredit(@RequestBody CreditCreateModelDto creditDTO){
         return ResponseEntity.ok(creditService.createCredit(creditDTO));
     }
 

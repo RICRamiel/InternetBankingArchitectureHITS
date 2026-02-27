@@ -1,5 +1,6 @@
 package org.ricramiel.creditservice.service;
 
+import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.dto.CreditDTO;
 import org.ricramiel.creditservice.model.Credit;
 import org.springframework.data.domain.Page;
@@ -11,7 +12,7 @@ public interface CreditService {
 
 
 
-    Credit createCredit(CreditDTO creditDTO);
+    Credit createCredit(CreditCreateModelDto creditDTO);
     void deleteCredit(UUID creditId);
     List<Credit> getByUserId(UUID userId);
     Page<Credit> findAllPageable(int size, int offset);
