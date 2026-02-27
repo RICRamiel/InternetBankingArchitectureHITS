@@ -11,9 +11,7 @@ import java.util.UUID;
 
 @Repository
 public interface CreditRepository extends JpaRepository<Credit, UUID> {
+
     List<Credit> findByUserId(UUID userId);
-
-
     Credit findByCardAccount(UUID cardAccountId);
-
 }
