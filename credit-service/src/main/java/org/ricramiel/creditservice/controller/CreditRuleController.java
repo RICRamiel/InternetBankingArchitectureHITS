@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.ricramiel.creditservice.dto.CreditRuleDTO;
 import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.service.CreditRuleService;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,12 +24,12 @@ public class CreditRuleController {
     }
 
     @PutMapping("/{creditRuleId}/edit")
-    public ResponseEntity<CreditRule> editCreditRule(@RequestBody CreditRuleDTO creditRuleDTO, @PathVariable UUID creditRuleId){
+    public ResponseEntity<CreditRule> editCreditRule(@RequestBody CreditRuleDTO creditRuleDTO, @PathVariable @Param("creditRuleId") UUID creditRuleId){
         return ResponseEntity.ok(creditRuleService.editCreditRule(creditRuleDTO, creditRuleId));
     }
 
     @DeleteMapping("/{creditRuleId}/delete")
-    public void deleteCreditRule(@PathVariable UUID creditRuleId){
+    public void deleteCreditRule(@PathVariable @Param("creditRuleId") UUID creditRuleId){
         creditRuleService.deleteCreditRule(creditRuleId);
     }
 
@@ -38,7 +39,7 @@ public class CreditRuleController {
     }
 
     @GetMapping("/{creditRuleId}/get_by_id")
-    public ResponseEntity<CreditRule> getCreditRuleById(@PathVariable UUID creditRuleId){
+    public ResponseEntity<CreditRule> getCreditRuleById(@PathVariable @Param("creditRuleId") UUID creditRuleId){
         return ResponseEntity.ok(creditRuleService.getCreditRuleById(creditRuleId));
     }
 }
