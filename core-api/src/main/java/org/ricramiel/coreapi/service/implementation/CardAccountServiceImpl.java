@@ -1,24 +1,41 @@
 package org.ricramiel.coreapi.service.implementation;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import org.ricramiel.common.dtos.EventWithdrawDto;
+import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
 import org.ricramiel.coreapi.entity.CardAccount;
+import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.repository.CardAccountRepository;
+import org.ricramiel.coreapi.repository.OutboxRepository;
 import org.ricramiel.coreapi.service.CardAccountService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.smartcardio.Card;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CardAccountServiceImpl implements CardAccountService {
     private final CardAccountRepository cardAccountRepository;
+    private final OutboxRepository outboxRepository;
+    private ObjectMapper objectMapper;
+
+    @Value("type.withdraw")
+    private String TYPE_WITHDRAW;
+
+    @Value("spring.kafka.topic.withdraw_transaction")
+    private String WITHDRAW_TRANSACTION_TOPIC;
 
     @Override
+    @Transactional
     public void enroll(UUID accountId, BigDecimal amount) {
         CardAccount account = cardAccountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found"));
@@ -26,10 +43,17 @@ public class CardAccountServiceImpl implements CardAccountService {
     }
 
     @Override
-    public void withdraw(UUID accountId, BigDecimal amount) {
-        CardAccount account = cardAccountRepository.findById(accountId)
+    @Transactional
+    @SneakyThrows
+    public void withdraw(WithdrawDto withdrawDto) {
+        CardAccount account = cardAccountRepository.findById(withdrawDto.getCardAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
-        account.setMoney(account.getMoney().subtract(amount));
+        account.setMoney(account.getMoney().subtract(withdrawDto.getSum()));
+        EventWithdrawDto eventWithdrawDto = new EventWithdrawDto(UUID.randomUUID(), withdrawDto, LocalDateTime.now(), TYPE_WITHDRAW);
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(eventWithdrawDto));
+        outboxRepository.save(outboxEvent);
     }
 
     @Override

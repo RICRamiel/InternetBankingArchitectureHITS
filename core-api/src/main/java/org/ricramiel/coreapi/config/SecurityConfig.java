@@ -1,6 +1,8 @@
 package org.ricramiel.coreapi.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.headers.security.SecurityHeadersPropagationFilter;
 import org.ricramiel.common.headers.security.SetSecurityContextFromHeadersFilter;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(jsr250Enabled=true)
+@EnableMethodSecurity(jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final SecurityHeadersPropagationFilter securityHeadersPropagationFilter;
@@ -23,10 +25,25 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(authorizeRequests ->
+                        authorizeRequests
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/v3/api-docs/**",
+                                        "/swagger-resources/**",
+                                        "/webjars/**"
+                                ).permitAll()
+                                .anyRequest().permitAll()
+                )
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(setSecurityContextFromHeadersFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(securityHeadersPropagationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(securityHeadersPropagationFilter, UsernamePasswordAuthenticationFilter.class)
+                .securityContext(securityContext -> securityContext.requireExplicitSave(true));
 
         return http.build();
     }
