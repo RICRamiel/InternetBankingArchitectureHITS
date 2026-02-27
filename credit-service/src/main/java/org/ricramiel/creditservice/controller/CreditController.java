@@ -25,22 +25,22 @@ public class CreditController {
     }
 
     @DeleteMapping("/{creditId}/delete")
-    public void deleteCredit(@PathVariable @Param("creditId") UUID creditId){
+    public void deleteCredit(@PathVariable("creditId") @Param("creditId") UUID creditId){
         creditService.deleteCredit(creditId);
     }
 
     @GetMapping("/{userId}/get_by_user_id")
-    public ResponseEntity<List<Credit>> getByUserId(@PathVariable @Param("userId") UUID userId){
+    public ResponseEntity<List<Credit>> getByUserId(@PathVariable("userId") @Param("userId") UUID userId){
         return ResponseEntity.ok(creditService.getByUserId(userId));
     }
 
     @GetMapping("/{cardAccountId}/get_by_card_account")
-    public ResponseEntity<Credit> getByCardAccountId(@PathVariable @Param("cardAccountId") UUID cardAccountId){
+    public ResponseEntity<Credit> getByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId){
         return ResponseEntity.ok(creditService.getByCardAccountId(cardAccountId));
     }
 
     @PostMapping("/{cardAccountId}/enrollment")
-    public ResponseEntity<Credit> makeEnrollment(@PathVariable @Param("cardAccountId") UUID cardAccountId,@RequestParam BigDecimal money){
+    public ResponseEntity<Credit> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,@RequestParam BigDecimal money){
         return ResponseEntity.ok(creditService.makeEnrollment(cardAccountId, money));
     }
 }

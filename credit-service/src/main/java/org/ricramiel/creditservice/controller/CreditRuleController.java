@@ -24,12 +24,14 @@ public class CreditRuleController {
     }
 
     @PutMapping("/{creditRuleId}/edit")
-    public ResponseEntity<CreditRule> editCreditRule(@RequestBody CreditRuleDTO creditRuleDTO, @PathVariable @Param("creditRuleId") UUID creditRuleId){
+    public ResponseEntity<CreditRule> editCreditRule(
+            @RequestBody CreditRuleDTO creditRuleDTO,
+            @PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
         return ResponseEntity.ok(creditRuleService.editCreditRule(creditRuleDTO, creditRuleId));
     }
 
     @DeleteMapping("/{creditRuleId}/delete")
-    public void deleteCreditRule(@PathVariable @Param("creditRuleId") UUID creditRuleId){
+    public void deleteCreditRule(@PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
         creditRuleService.deleteCreditRule(creditRuleId);
     }
 
@@ -39,7 +41,7 @@ public class CreditRuleController {
     }
 
     @GetMapping("/{creditRuleId}/get_by_id")
-    public ResponseEntity<CreditRule> getCreditRuleById(@PathVariable @Param("creditRuleId") UUID creditRuleId){
+    public ResponseEntity<CreditRule> getCreditRuleById(@PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
         return ResponseEntity.ok(creditRuleService.getCreditRuleById(creditRuleId));
     }
 }
