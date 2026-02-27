@@ -29,6 +29,6 @@ public class CardAccount {
 
     private Boolean deleted;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "account")
     private List<TransactionOperation> transactionOperations;
 }

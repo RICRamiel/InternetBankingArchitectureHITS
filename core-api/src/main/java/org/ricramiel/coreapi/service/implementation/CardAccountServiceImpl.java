@@ -50,7 +50,7 @@ public class CardAccountServiceImpl implements CardAccountService {
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
         transactionOperation.setMoney(enrollDto.getSum());
-        transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
+        transactionOperation.setTransactionType(TransactionType.ENROLLMENT);
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
         transactionOperation.setDateTime(LocalDateTime.now());
         transactionOperationRepository.save(transactionOperation);

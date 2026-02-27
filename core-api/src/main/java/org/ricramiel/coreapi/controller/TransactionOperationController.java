@@ -27,12 +27,12 @@ public class TransactionOperationController {
     private final TransactionOperationService transactionOperationService;
     private final CardAccountService cardAccountService;
 
-    @GetMapping("/{userId}")
+    @GetMapping("/{accountId}")
     public ResponseEntity<Page<TransactionOperation>> getTransactionOperations(
-            @PathVariable("userId") @Param("userId") UUID userId,
+            @PathVariable("accountId") @Param("accountId") UUID accountId,
             @RequestParam(required = false, defaultValue = "0", name = "pageIndex") int pageIndex,
             @RequestParam(required = false, defaultValue = "30", name = "pageSize") int pageSize) {
-        return ResponseEntity.ok(transactionOperationService.findByAccountId(userId, PageRequest.of(pageIndex, pageSize)));
+        return ResponseEntity.ok(transactionOperationService.findByAccountId(accountId, PageRequest.of(pageIndex, pageSize)));
     }
 
     @PostMapping("/enroll")

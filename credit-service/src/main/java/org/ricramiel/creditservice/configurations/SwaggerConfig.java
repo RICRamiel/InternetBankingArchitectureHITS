@@ -16,7 +16,7 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Car service API")
+                        .title("Credit service API")
                         .version("1.0"))
                 .components(new Components()
                         .addSecuritySchemes("JWT", new SecurityScheme()
