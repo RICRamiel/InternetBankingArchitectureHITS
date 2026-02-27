@@ -62,7 +62,7 @@ public class AuthController {
         authService.revoke(request.getValue());
     }
 
-    @PreAuthorize("hasRole('WORKER')")
+//    @PreAuthorize("hasRole('WORKER')")
     @PostMapping("register")
     public JwtModelDto register(@Valid @RequestBody RegisterModelDto request) {
         return jwtModelMapper.toDto(
