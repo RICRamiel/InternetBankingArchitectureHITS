@@ -14,4 +14,6 @@ public interface CreditRepository extends JpaRepository<Credit, UUID> {
 
     List<Credit> findByUserId(UUID userId);
     Credit findByCardAccount(UUID cardAccountId);
+
+    boolean existsByCardAccount(UUID cardAccount);
 }

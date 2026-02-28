@@ -28,6 +28,10 @@ public class GlobalExceptionHandler {
 
     private final EnvUtil envUtil;
 
+    @ExceptionHandler(CreditAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleCreditAlreadyExistsException(CreditAlreadyExistsException ex) {
+        return new ResponseEntity<>(new ErrorResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
     //Custom exceptions
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException ex) {

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.ricramiel.common.dtos.EnrollDto;
 import org.ricramiel.common.dtos.EventEnrollDto;
+import org.ricramiel.common.exceptions.status_code_exceptions.CreditAlreadyExistsException;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.model.Credit;
@@ -46,6 +47,10 @@ public class CreditServiceImpl implements CreditService {
     public Credit createCredit(CreditCreateModelDto creditDTO) {
         CreditRule rule = creditRuleRepository.findById(creditDTO.getCreditRuleId())
                 .orElseThrow(() -> new NotFoundException("Credit rule not found"));
+
+        if(creditRepository.existsByCardAccount(creditDTO.getCardAccount())){
+            throw new CreditAlreadyExistsException("Credit on this card account already exists");
+        }
 
         Credit credit = Credit.builder()
                 .creditRule(rule)
