@@ -52,10 +52,9 @@ public class CreditController {
     public ResponseEntity<Credit> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
                                                  @RequestParam("money") BigDecimal money) {
         Credit credit = creditService.getByCardAccountId(cardAccountId);
-        if(!credit.getDebt().equals(BigDecimal.ZERO)){
-            scheduledService.withdraw(credit.getCardAccount(), credit.getDebt());
+        if(!credit.getCurrentDebtSum().equals(BigDecimal.ZERO)){
+            scheduledService.withdraw(credit.getCardAccount(), money);
         }
-        scheduledService.withdraw(cardAccountId, money);
         return ResponseEntity.ok(credit);
     }
 }
