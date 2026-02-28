@@ -58,6 +58,7 @@ public class CreditServiceImpl implements CreditService {
                 .debt(BigDecimal.ZERO)
                 .cardAccount(creditDTO.getCardAccount())
                 .userId(creditDTO.getUserId())
+                .lastInterestUpdate(LocalDateTime.now())
                 .build();
         eventCreateCredit(credit);
         return creditRepository.save(credit);
