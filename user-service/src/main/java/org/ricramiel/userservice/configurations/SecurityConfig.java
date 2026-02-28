@@ -2,12 +2,12 @@ package org.ricramiel.userservice.configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
-import org.ricramiel.userservice.api.mappers.JwtModelMapper;
+import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.exceptions.ErrorResponse;
+import org.ricramiel.userservice.api.mappers.JwtModelMapper;
 import org.ricramiel.userservice.domain.models.responses.JwtModel;
 import org.ricramiel.userservice.domain.services.AuthService;
 import org.ricramiel.userservice.infrastructure.security.filters.JwtFilter;
-import lombok.RequiredArgsConstructor;
 import org.ricramiel.userservice.infrastructure.security.oauth.CustomOauth2User;
 import org.ricramiel.userservice.infrastructure.security.oauth.OAuth2UserService;
 import org.springframework.context.annotation.Bean;
@@ -20,8 +20,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.core.GrantedAuthorityDefaults;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -37,7 +35,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(jsr250Enabled=true)
+@EnableMethodSecurity(jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
@@ -49,13 +47,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/login",
-                                "/auth/register" ,
+                                "/auth/register",
                                 "/swagger-ui/**",
                                 "/swagger-resources/*",
                                 "/v3/api-docs/**",
@@ -109,11 +106,16 @@ public class SecurityConfig {
         };
     }
 
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:8001",
+                "http://localhost:8002",
+                "http://localhost:8000",
+                "http://90.188.93.70:8080",
+                "http://n8n.thallassianangel.su:8080",
+                "http://localhost:8080",
+                "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

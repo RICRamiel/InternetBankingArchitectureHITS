@@ -82,7 +82,7 @@ public class ScheduledService {
     }
 
     @Transactional
-    protected void withdraw(UUID cardAccountId, BigDecimal money) {
+    public void withdraw(UUID cardAccountId, BigDecimal money) {
         WithdrawDto withdrawDto = new WithdrawDto();
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);
