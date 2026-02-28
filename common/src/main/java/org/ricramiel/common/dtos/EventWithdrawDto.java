@@ -1,6 +1,5 @@
 package org.ricramiel.common.dtos;
 
-import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;

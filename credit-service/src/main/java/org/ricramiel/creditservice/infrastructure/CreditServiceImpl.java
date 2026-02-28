@@ -38,7 +38,7 @@ public class CreditServiceImpl implements CreditService {
     private String destination;
     @Value("${type.enroll}")
     private String TYPE_ENROLL;
-    @Value("${spring.kafka.topic.withdraw_transaction}")
+    @Value("${app.kafka.topics.enroll}")
     private String ENROLL_TRANSACTION_TOPIC;
 
     @Override

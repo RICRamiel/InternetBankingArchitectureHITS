@@ -44,8 +44,8 @@ public class ScheduledService {
                 }
                 creditRepository.save(credit);
             });
-            credits = creditService.findAllPageable(pageNumber, size);
             pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
         }
     }
 
@@ -61,8 +61,8 @@ public class ScheduledService {
                 CreditRule creditRule = credit.getCreditRule();
                 withdraw(credit.getCardAccount(), credit.getDebt().add(creditRule.getPercentage().multiply(credit.getDebt().subtract(credit.getDebt()))));
             });
-            credits = creditService.findAllPageable(pageNumber, size);
             pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
         }
     }
 

@@ -21,8 +21,8 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 @RequiredArgsConstructor
-public class KafkaService {
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaService.class);
+public class KafkaEventWithdrawService {
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaEventWithdrawService.class);
     private final KafkaTemplate<String, EventWithdrawDto> kafkaTemplate;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
