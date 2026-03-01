@@ -38,7 +38,11 @@ public class UsersServiceImpl implements UsersService {
                 .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + id));
 
-        user.setRoles(userEditModel.getRoles());
+        user.getRoles().clear();
+
+        if (userEditModel.getRoles() != null) {
+            user.getRoles().addAll(userEditModel.getRoles());
+        }
 
         User saved = userRepository.save(user);
         log.info("Edited user with id: {}", saved.getId());
