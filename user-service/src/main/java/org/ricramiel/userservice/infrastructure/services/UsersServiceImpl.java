@@ -11,6 +11,7 @@ import org.ricramiel.userservice.domain.models.requests.UserEditRequestModel;
 import org.ricramiel.userservice.domain.services.UsersService;
 import org.ricramiel.userservice.infrastructure.repositories.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class UsersServiceImpl implements UsersService {
     }
 
     @Override
+    @Transactional
     public User editUserById(@NonNull UUID id, @Valid @NonNull UserEditRequestModel userEditModel) {
         User user = userRepository
                 .findById(id)
