@@ -11,8 +11,8 @@ public class CreditMapper {
 
         Credit credit = new Credit();
         credit.setCreditRule(creditDTO.getCreditRule());
-        credit.setDebt(creditDTO.getTotalDebt());
-        credit.setTotalDebt(creditDTO.getTotalDebt());
+        credit.setCurrentDebtSum(creditDTO.getTotalDebt());
+        credit.setInitialDebt(creditDTO.getTotalDebt());
         credit.setUserId(creditDTO.getUserId());
         credit.setCardAccount(creditDTO.getCardAccount());
 

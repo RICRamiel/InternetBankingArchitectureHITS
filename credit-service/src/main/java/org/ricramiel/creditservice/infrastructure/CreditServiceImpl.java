@@ -54,8 +54,9 @@ public class CreditServiceImpl implements CreditService {
 
         Credit credit = Credit.builder()
                 .creditRule(rule)
-                .totalDebt(creditDTO.getTotalDebt())
-                .debt(BigDecimal.ZERO)
+                .initialDebt(creditDTO.getTotalDebt())
+                .currentDebtSum(BigDecimal.ZERO)
+                .interestDebtSum(BigDecimal.ZERO)
                 .cardAccount(creditDTO.getCardAccount())
                 .userId(creditDTO.getUserId())
                 .lastInterestUpdate(LocalDateTime.now())
@@ -66,7 +67,7 @@ public class CreditServiceImpl implements CreditService {
 
     @SneakyThrows
     private void eventCreateCredit(Credit credit){
-        EnrollDto enrollDto = new EnrollDto(credit.getCardAccount(), credit.getTotalDebt(), destination);
+        EnrollDto enrollDto = new EnrollDto(credit.getCardAccount(), credit.getInitialDebt(), destination);
         EventEnrollDto eventEnrollDto = new EventEnrollDto(UUID.randomUUID(), enrollDto, LocalDateTime.now(), TYPE_ENROLL);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + enrollDto.getDestination());
@@ -99,7 +100,18 @@ public class CreditServiceImpl implements CreditService {
     @Transactional
     public Credit makeEnrollment(UUID cardAccountId, BigDecimal money) {
         Credit credit = getByCardAccountId(cardAccountId);
-        credit.setDebt(credit.getDebt().subtract(money));
+        //остаток в случае, если сумма которую пользователь отправил на погашение долга превышает сумму, накаповшую с процентов
+        BigDecimal remainings = BigDecimal.ZERO;
+
+        if(credit.getInterestDebtSum().compareTo(money) < 0){
+            remainings = money.subtract(credit.getInterestDebtSum());
+            money = credit.getInterestDebtSum();
+        }
+
+        credit.setInterestDebtSum(credit.getInterestDebtSum().subtract(money));
+
+        credit.setCurrentDebtSum(credit.getCurrentDebtSum().subtract(remainings));
+
         creditRepository.save(credit);
         return creditRepository.findByCardAccount(cardAccountId);
     }

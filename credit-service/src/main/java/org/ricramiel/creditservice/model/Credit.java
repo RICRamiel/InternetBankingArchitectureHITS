@@ -24,8 +24,9 @@ public class Credit {
     private LocalDateTime lastInterestUpdate;
     private UUID userId;
     private UUID cardAccount;
-    private BigDecimal debt;
-    private BigDecimal totalDebt;
+    private BigDecimal currentDebtSum;
+    private BigDecimal initialDebt;
+    private BigDecimal interestDebtSum;
 
     @ManyToOne
     @JoinColumn(name = "credit_rule_id")

@@ -1,8 +1,6 @@
 package org.ricramiel.coreapi.config;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.headers.security.SecurityHeadersPropagationFilter;
 import org.ricramiel.common.headers.security.SetSecurityContextFromHeadersFilter;
 import org.springframework.context.annotation.Bean;

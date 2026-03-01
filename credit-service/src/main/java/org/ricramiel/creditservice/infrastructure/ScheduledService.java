@@ -10,7 +10,6 @@ import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.repository.CreditRepository;
 import org.ricramiel.creditservice.service.CreditService;
 import org.springframework.data.domain.Page;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +44,7 @@ public class ScheduledService {
                 if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
                     for (int i = 0; i < iterationsAmount; i++) {
                         credit.setLastInterestUpdate(LocalDateTime.now());
-                        BigDecimal interest = calcInterest(credit.getTotalDebt(), creditRule.getPercentage());
-                        credit.setDebt(credit.getDebt().add(interest));
-                        credit.setTotalDebt(credit.getTotalDebt().subtract(interest));
+                        credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100)))));
                     }
                 }
 
@@ -68,8 +65,8 @@ public class ScheduledService {
         while (!credits.isEmpty()) {
             credits.forEach(credit -> {
 
-                if(!credit.getDebt().equals(BigDecimal.ZERO)){
-                    withdraw(credit.getCardAccount(), credit.getDebt());
+                if(!credit.getInterestDebtSum().equals(BigDecimal.ZERO)){
+                    withdraw(credit.getCardAccount(), credit.getInterestDebtSum());
                 }
             });
             pageNumber++;
@@ -77,12 +74,8 @@ public class ScheduledService {
         }
     }
 
-    private BigDecimal calcInterest(BigDecimal to, BigDecimal percentage) {
-        return to.multiply(percentage).divide(new BigDecimal(100));
-    }
-
     @Transactional
-    protected void withdraw(UUID cardAccountId, BigDecimal money) {
+    public void withdraw(UUID cardAccountId, BigDecimal money) {
         WithdrawDto withdrawDto = new WithdrawDto();
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);

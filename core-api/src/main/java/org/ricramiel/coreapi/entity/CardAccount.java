@@ -28,7 +28,4 @@ public class CardAccount {
     private BigDecimal money;
 
     private Boolean deleted;
-
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "account")
-    private List<TransactionOperation> transactionOperations;
 }
