@@ -5,6 +5,10 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.ricramiel.common.enums.Role;
+
+import java.util.List;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -12,5 +16,5 @@ import lombok.NoArgsConstructor;
 public class UserEditModelDto {
     @NotNull
     @NotBlank
-    private String name;
+    private Set<Role> newRoles;
 }
