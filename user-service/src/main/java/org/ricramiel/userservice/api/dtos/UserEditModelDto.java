@@ -14,7 +14,5 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserEditModelDto {
-    @NotNull
-    @NotBlank
     private Set<Role> newRoles;
 }
