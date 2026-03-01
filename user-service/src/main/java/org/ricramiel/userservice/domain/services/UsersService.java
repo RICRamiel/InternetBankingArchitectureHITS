@@ -5,6 +5,7 @@ import lombok.NonNull;
 import org.ricramiel.userservice.domain.models.entities.User;
 import org.ricramiel.userservice.domain.models.requests.UserEditRequestModel;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UsersService {
@@ -13,4 +14,6 @@ public interface UsersService {
     User editUserById(@NonNull UUID id, @Valid @NonNull UserEditRequestModel userEditModel);
 
     User deleteUserById(@NonNull UUID id);
+
+    List<User> getAllUsers();
 }

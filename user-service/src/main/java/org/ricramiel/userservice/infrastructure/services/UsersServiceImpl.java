@@ -13,6 +13,7 @@ import org.ricramiel.userservice.infrastructure.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -53,5 +54,10 @@ public class UsersServiceImpl implements UsersService {
         User saved = userRepository.save(user);
         log.info("Deleted user with id: {}", saved.getId());
         return saved;
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }

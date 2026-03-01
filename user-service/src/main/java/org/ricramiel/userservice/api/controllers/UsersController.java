@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +34,12 @@ public class UsersController {
     @PreAuthorize("hasRole('WORKER') OR @accessChecker.isSelf(#id)")
     public Boolean isUserActiveById(@PathVariable("id") @Param("id") UUID id) {
         return usersService.getUserById(id).isActive();
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('WORKER')")
+    public List<UserDto> getAllUsers() {
+        return usersService.getAllUsers().stream().map(userMapper::toDto).toList();
     }
 
     @DeleteMapping("{id}")
