@@ -7,6 +7,7 @@ import path from 'path'
 export default defineConfig({
   server:{
     port: 5174,
+    allowedHosts: ["worker.thallassianangel.su"]
   },
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
@@ -20,7 +21,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

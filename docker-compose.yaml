@@ -1,0 +1,260 @@
+version: '3.8'
+
+# Сети: определяем изолированное пространство для контейнеров
+networks:
+  # Создаем пользовательскую сеть типа bridge
+  # В отличие от дефолтной bridge, здесь работает внутренний DNS
+  proxy-network:
+    driver: bridge
+
+services:
+  # --- СЕРВИС 1: Frontend Worker ---
+  worker:
+    build:
+      context: bank-worker  # Путь к папке с Dockerfile
+      # Аргументы сборки, если нужны
+      args:
+        - NODE_ENV=development
+    container_name: bank-worker-app
+    # Не публикуем порты на хост!
+    # expose только декларирует, но не открывает наружу
+    expose:
+      - "5174"  # Документируем, что внутри контейнера слушается этот порт
+    # Переменные окружения для приложения
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0  # Убеждаемся, что дев-сервер слушает все интерфейсы
+      - PORT=5174
+    networks:
+      - proxy-network
+    # Политика перезапуска
+    restart: unless-stopped
+    # Зависимости: project1 должен запуститься после nginx?
+    # Не обязательно, но для порядка укажем
+    depends_on:
+      - nginx-proxy
+    # Логирование
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --- СЕРВИС 2: Frontend Client ---
+  client:
+    build:
+      context: bank-client
+    container_name: bank-client-app
+    expose:
+      - "5173"
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=5173
+    networks:
+      - proxy-network
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: bank-api-gateway
+    expose:
+      - "8080"
+    environment:
+      - SERVER_PORT=8080
+      - USER_SERVICE_URI=http://user-service:8000
+      - CORE_API_URI=http://core-api:8001
+      - CREDIT_SERVICE_URI=http://credit-service:8002
+      - TOKEN_VALIDATION_URL=http://user-service:8000/api/user-service/auth/validate
+      - CLIENT_URL=http://client.thallassianangel.su
+      - CLIENT_SECURE_URL=https://client.thallassianangel.su
+      - WORKER_URL=http://worker.thallassianangel.su
+      - WORKER_SECURE_URL=https://worker.thallassianangel.su
+      - API_URL=http://api.thallassianangel.su
+      - API_SECURE_URL=https://api.thallassianangel.su
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  core-api:
+    build:
+      context: .
+      dockerfile: core-api/Dockerfile
+    container_name: bank-core-api
+    expose:
+      - "8001"
+    environment:
+      - SERVER_PORT=8001
+      - TRANSACTION_TOPIC=TransactionsTopic
+      - TRANSACTION_ENROLL=TransactionEnroll
+      - TRANSACTION_WITHDRAW=TransactionWithdraw
+      - KAFKA_SERVER_IP_PORT=kafka:29092
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/coreapi
+      - KAFKA_DESTINATION=credit
+      - TYPE_WITHDRAW=withdraw
+      - TYPE_ENROLL=enroll
+      - KAFKA_ENROLL_TOPIC=TransactionEnroll_credit
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: bank-user-service
+    expose:
+      - "8000"
+    environment:
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/userservice
+      - JWT_ACCESS_SECRET=iMO7Z2UBLiapoEsVkTLkwiZhLe6v+klhTLrVOCaLfdBvysaAALR2B54PGhr6i8y8TDGKcCxeU5ze+vARv1yP3Q==
+      - JWT_REFRESH_SECRET=AB2Tr5Zslz0PsAMgREcbPVwtSVKFa0a7MoC6mM4tanAVBYExg1RQjZVMqzlsP9gdVA23Nr37/zDnzeYBt8mI4w==
+      - SERVER_PORT=8000
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  credit-service:
+    build:
+      context: .
+      dockerfile: credit-service/Dockerfile
+    container_name: bank-credit-service
+    expose:
+      - "8002"
+    environment:
+      - SERVER_PORT=8002
+      - TRANSACTION_TOPIC=TransactionsTopic
+      - TRANSACTION_ENROLL=TransactionEnroll
+      - TRANSACTION_WITHDRAW=TransactionWithdraw
+      - KAFKA_SERVER_IP=kafka:29092
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/creditservice
+      - CORE_API_URL=core-api:8001/api/core-api
+      - TYPE_ENROLL=enroll
+      - OUTBOX_TIME=5000
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:latest
+    container_name: bank_postgres
+    environment:
+      POSTGRES_USER: c417110f943e48c5a62d45633bdf9ea2
+      POSTGRES_PASSWORD: 80ca53193cc6401fba4a426f75432d86
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data/pgdata
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: >
+      postgres -c max_connections=1000
+               -c shared_buffers=256MB
+               -c effective_cache_size=768MB
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.7
+               -c wal_buffers=16MB
+               -c default_statistics_target=100
+    restart: unless-stopped
+    networks:
+      - proxy-network
+  # --- СЕРВИС 3: Nginx Reverse Proxy ---
+  nginx-proxy:
+    # Используем официальный образ nginx на Alpine (очень легкий)
+    image: nginx:latest
+    container_name: nginx-proxy
+    # Публикуем порты на хост-машину (Windows)
+    ports:
+      # Формат: "порт_на_хосте:порт_в_контейнере"
+      - "80:80"    # HTTP
+      - "443:443"  # HTTPS (пригодится позже)
+      # Опционально: порт для мониторинга nginx
+      # - "8080:8080"  # Если захотим nginx status page
+    volumes:
+      # Монтируем конфигурацию из папки nginx.conf
+      # :ro означает read-only - контейнер не сможет менять файлы
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+      # Для статических файлов, если nginx будет раздавать статику
+      # - ./static:/usr/share/nginx/html:ro
+
+      # Для SSL-сертификатов (позже)
+      # - ./ssl:/etc/nginx/ssl:ro
+
+      # Для логов nginx (чтобы видеть их на хосте)
+      - ./logs:/var/log/nginx
+    networks:
+      - proxy-network
+    restart: unless-stopped
+    # Добавляем запись в /etc/hosts контейнера для доступа к хосту Windows
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Команда для запуска nginx на переднем плане (чтоб видеть логи)
+    command: ["nginx", "-g", "daemon off;"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Проверка здоровья контейнера
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  zookeeper:
+    image: zookeeper:3.7.0
+    container_name: bank_zookeeper
+    restart: "no"
+    networks:
+      - proxy-network
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: obsidiandynamics/kafka
+    container_name: bank_kafka
+    restart: "no"
+    networks:
+      - proxy-network
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER_INTERNAL:PLAINTEXT,DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: DOCKER_INTERNAL://:29092,DOCKER_EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: DOCKER_INTERNAL://kafka:29092,DOCKER_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+volumes:
+  pgdata:
+    driver: local
