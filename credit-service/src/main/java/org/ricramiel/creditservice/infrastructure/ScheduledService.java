@@ -39,7 +39,7 @@ public class ScheduledService {
             credits.forEach(credit -> {
                 CreditRule creditRule = credit.getCreditRule();
 
-                long iterationsAmount = Duration.between(LocalDateTime.now(), credit.getLastInterestUpdate()).getSeconds() / creditRule.getCollectionPeriodSeconds();
+                long iterationsAmount = Duration.between(credit.getLastInterestUpdate(), LocalDateTime.now()).getSeconds() / creditRule.getCollectionPeriodSeconds();
 
                 if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
                     for (int i = 0; i < iterationsAmount; i++) {

@@ -1,7 +1,9 @@
 package org.ricramiel.creditservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.creditservice.dto.CreditRuleAnswerDTO;
 import org.ricramiel.creditservice.dto.CreditRuleDTO;
+import org.ricramiel.creditservice.mapper.CreditRuleMapper;
 import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.service.CreditRuleService;
 import org.springframework.data.repository.query.Param;
@@ -19,15 +21,15 @@ public class CreditRuleController {
     private final CreditRuleService creditRuleService;
 
     @PostMapping("/create")
-    public ResponseEntity<CreditRule> createCreditRule(@RequestBody CreditRuleDTO creditRuleDTO){
-        return ResponseEntity.ok(creditRuleService.createCreditRule(creditRuleDTO));
+    public ResponseEntity<CreditRuleAnswerDTO> createCreditRule(@RequestBody CreditRuleDTO creditRuleDTO){
+        return ResponseEntity.ok(CreditRuleMapper.toAnswerDto(creditRuleService.createCreditRule(creditRuleDTO)));
     }
 
     @PutMapping("/{creditRuleId}/edit")
-    public ResponseEntity<CreditRule> editCreditRule(
+    public ResponseEntity<CreditRuleAnswerDTO> editCreditRule(
             @RequestBody CreditRuleDTO creditRuleDTO,
             @PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
-        return ResponseEntity.ok(creditRuleService.editCreditRule(creditRuleDTO, creditRuleId));
+        return ResponseEntity.ok(CreditRuleMapper.toAnswerDto(creditRuleService.editCreditRule(creditRuleDTO, creditRuleId)));
     }
 
     @DeleteMapping("/{creditRuleId}/delete")
@@ -36,12 +38,12 @@ public class CreditRuleController {
     }
 
     @GetMapping("/get_all")
-    public ResponseEntity<List<CreditRule>> getAllCreditRules(){
-        return ResponseEntity.ok(creditRuleService.getAllCreditRules());
+    public ResponseEntity<List<CreditRuleAnswerDTO>> getAllCreditRules(){
+        return ResponseEntity.ok(CreditRuleMapper.toListDto(creditRuleService.getAllCreditRules()));
     }
 
     @GetMapping("/{creditRuleId}/get_by_id")
-    public ResponseEntity<CreditRule> getCreditRuleById(@PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
-        return ResponseEntity.ok(creditRuleService.getCreditRuleById(creditRuleId));
+    public ResponseEntity<CreditRuleAnswerDTO> getCreditRuleById(@PathVariable("creditRuleId") @Param("creditRuleId") UUID creditRuleId){
+        return ResponseEntity.ok(CreditRuleMapper.toAnswerDto(creditRuleService.getCreditRuleById(creditRuleId)));
     }
 }
