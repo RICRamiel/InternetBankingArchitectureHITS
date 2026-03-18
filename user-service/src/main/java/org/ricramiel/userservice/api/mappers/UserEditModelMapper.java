@@ -8,12 +8,12 @@ import org.springframework.stereotype.Component;
 public class UserEditModelMapper {
     public UserEditModelDto toDto(UserEditRequestModel model) {
         return new UserEditModelDto(
-                model.getName()
+                model.getRoles()
         );
     }
     public UserEditRequestModel toDomain(UserEditModelDto model) {
         return new UserEditRequestModel(
-                model.getName()
+                model.getNewRoles()
         );
     }
 }

@@ -1,0 +1,9 @@
+{
+    "schemaFile": "./openApi.yaml",
+    "apiFile": "./src/lib/api/emptyApi.ts",
+    "apiImport": "emptySplitApi",
+    "outputFile": "./src/lib/api/generatedApi.ts",
+    "exportName": "generatedApi",
+    "hooks": true,
+    "tag": true
+  }
