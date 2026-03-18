@@ -1,16 +1,11 @@
 package org.ricramiel.creditservice.dto;
 
-import jakarta.persistence.Enumerated;
 import lombok.Data;
-import org.ricramiel.creditservice.enums.PercentageStrategy;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 public class CreditRuleDTO {
-    private PercentageStrategy percentageStrategy;
     private Integer collectionPeriodSeconds;
     private LocalDateTime openingDate;
     private String ruleName;

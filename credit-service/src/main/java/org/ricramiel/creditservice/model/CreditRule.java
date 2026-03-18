@@ -2,7 +2,6 @@ package org.ricramiel.creditservice.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.ricramiel.creditservice.enums.PercentageStrategy;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -16,9 +15,6 @@ public class CreditRule {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    @Enumerated
-    private PercentageStrategy percentageStrategy;
 
     private Integer collectionPeriodSeconds;
     private LocalDateTime openingDate;
