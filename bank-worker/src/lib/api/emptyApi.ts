@@ -18,7 +18,7 @@ import type {
 
 //TODO: add API_URL from other place (idk where)
 const MOCK_API_URL = "http://localhost:4010";
-const API_URL = "http://n8n.thallassianangel.su:8080/api";
+const API_URL = "http://api.thallassianangel.su/api";
 
 const AUTH_ENDPOINTS = [
   'login',
