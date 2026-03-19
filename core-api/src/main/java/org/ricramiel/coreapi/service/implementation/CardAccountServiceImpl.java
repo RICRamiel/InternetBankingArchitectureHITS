@@ -3,8 +3,8 @@ package org.ricramiel.coreapi.service.implementation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EnrollDto;
-import org.ricramiel.common.dtos.EventWithdrawDto;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
@@ -28,6 +28,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CardAccountServiceImpl implements CardAccountService {
     private final CardAccountRepository cardAccountRepository;
     private final OutboxRepository outboxRepository;
@@ -40,6 +41,8 @@ public class CardAccountServiceImpl implements CardAccountService {
     @Value("${spring.kafka.topic.withdraw_transaction}")
     private String WITHDRAW_TRANSACTION_TOPIC;
 
+
+    //refactor
     @Override
     @Transactional
     public void enroll(EnrollDto enrollDto) {
@@ -52,16 +55,22 @@ public class CardAccountServiceImpl implements CardAccountService {
         transactionOperation.setMoney(enrollDto.getSum());
         transactionOperation.setTransactionType(TransactionType.ENROLLMENT);
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        transactionOperation.setAction(enrollDto.getDestination());
         transactionOperation.setDateTime(LocalDateTime.now());
         transactionOperationRepository.save(transactionOperation);
     }
 
+    //refactor
     @Override
     @Transactional
     @SneakyThrows
     public void withdraw(WithdrawDto withdrawDto) {
         CardAccount account = cardAccountRepository.findById(withdrawDto.getCardAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
+        if(account.getMoney().compareTo(withdrawDto.getSum()) < 0) {
+            log.debug("Withdraw transaction has been denied, due to not enough money");
+            // TODO Обработка недостатка средств с TransactionStatus = Declined
+        }
         account.setMoney(account.getMoney().subtract(withdrawDto.getSum()));
         cardAccountRepository.save(account);
 
@@ -70,14 +79,9 @@ public class CardAccountServiceImpl implements CardAccountService {
         transactionOperation.setMoney(withdrawDto.getSum());
         transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        transactionOperation.setAction(withdrawDto.getDestination());
         transactionOperation.setDateTime(LocalDateTime.now());
         transactionOperationRepository.save(transactionOperation);
-
-        EventWithdrawDto eventWithdrawDto = new EventWithdrawDto(UUID.randomUUID(), withdrawDto, LocalDateTime.now(), TYPE_WITHDRAW);
-        OutboxEvent outboxEvent = new OutboxEvent();
-        outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + withdrawDto.getDestination());
-        outboxEvent.setPayload(objectMapper.writeValueAsString(eventWithdrawDto));
-        outboxRepository.save(outboxEvent);
     }
 
     @Override

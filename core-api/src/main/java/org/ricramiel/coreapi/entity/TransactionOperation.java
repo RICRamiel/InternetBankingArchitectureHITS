@@ -41,5 +41,7 @@ public class TransactionOperation {
     @Enumerated(EnumType.STRING)
     private TransactionStatus transactionStatus;
 
+    private String action;
+
     private BigDecimal money;
 }
