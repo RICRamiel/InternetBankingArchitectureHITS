@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.creditservice.client.CoreClient;
-import org.ricramiel.creditservice.enums.PercentageStrategy;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.repository.CreditRepository;
@@ -39,14 +38,14 @@ public class ScheduledService {
             credits.forEach(credit -> {
                 CreditRule creditRule = credit.getCreditRule();
 
-                long iterationsAmount = Duration.between(LocalDateTime.now(), credit.getLastInterestUpdate()).getSeconds() / creditRule.getCollectionPeriodSeconds();
+                long iterationsAmount = Duration.between(credit.getLastInterestUpdate(), LocalDateTime.now()).getSeconds() / creditRule.getCollectionPeriodSeconds();
 
-                if (creditRule.getPercentageStrategy().equals(PercentageStrategy.FROM_REMAINING_DEBT)) {
-                    for (int i = 0; i < iterationsAmount; i++) {
-                        credit.setLastInterestUpdate(LocalDateTime.now());
-                        credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100)))));
-                    }
+
+                for (int i = 0; i < iterationsAmount; i++) {
+                    credit.setLastInterestUpdate(LocalDateTime.now());
+                    credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100)))));
                 }
+
 
                 creditRepository.save(credit);
             });

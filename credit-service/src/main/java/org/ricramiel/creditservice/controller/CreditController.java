@@ -1,8 +1,11 @@
 package org.ricramiel.creditservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.creditservice.dto.CreditAnswerDTO;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
+import org.ricramiel.creditservice.dto.CreditDTO;
 import org.ricramiel.creditservice.infrastructure.ScheduledService;
+import org.ricramiel.creditservice.mapper.CreditMapper;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.service.CreditService;
 import org.springframework.data.repository.query.Param;
@@ -29,8 +32,8 @@ public class CreditController {
     private final ScheduledService scheduledService;
 
     @PostMapping("/create")
-    public ResponseEntity<Credit> createCredit(@RequestBody CreditCreateModelDto creditDTO) {
-        return ResponseEntity.ok(creditService.createCredit(creditDTO));
+    public ResponseEntity<CreditAnswerDTO> createCredit(@RequestBody CreditCreateModelDto creditDTO) {
+        return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.createCredit(creditDTO)));
     }
 
     @DeleteMapping("/{creditId}/delete")
@@ -39,22 +42,22 @@ public class CreditController {
     }
 
     @GetMapping("/{userId}/get_by_user_id")
-    public ResponseEntity<List<Credit>> getByUserId(@PathVariable("userId") @Param("userId") UUID userId) {
-        return ResponseEntity.ok(creditService.getByUserId(userId));
+    public ResponseEntity<List<CreditAnswerDTO>> getByUserId(@PathVariable("userId") @Param("userId") UUID userId) {
+        return ResponseEntity.ok(CreditMapper.toListDto(creditService.getByUserId(userId)));
     }
 
     @GetMapping("/{cardAccountId}/get_by_card_account")
-    public ResponseEntity<Credit> getByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId) {
-        return ResponseEntity.ok(creditService.getByCardAccountId(cardAccountId));
+    public ResponseEntity<CreditAnswerDTO> getByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId) {
+        return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.getByCardAccountId(cardAccountId)));
     }
 
     @PostMapping("/{cardAccountId}/enrollment")
-    public ResponseEntity<Credit> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
+    public ResponseEntity<CreditAnswerDTO> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
                                                  @RequestParam("money") BigDecimal money) {
         Credit credit = creditService.getByCardAccountId(cardAccountId);
         if(!credit.getCurrentDebtSum().equals(BigDecimal.ZERO)){
             scheduledService.withdraw(credit.getCardAccount(), money);
         }
-        return ResponseEntity.ok(credit);
+        return ResponseEntity.ok(CreditMapper.toAnswerDto(credit));
     }
 }
