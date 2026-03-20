@@ -1,5 +1,6 @@
 package org.ricramiel.common.dtos;
 
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
@@ -9,7 +10,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @NoArgsConstructor
+@Data
 public class TransactionKafkaDto {
+    //nullable
+    private UUID id;
+
     private UUID sourceId;
 
     private UUID accountId;
