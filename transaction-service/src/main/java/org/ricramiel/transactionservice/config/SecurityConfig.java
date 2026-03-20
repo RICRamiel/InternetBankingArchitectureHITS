@@ -18,8 +18,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final SecurityHeadersPropagationFilter securityHeadersPropagationFilter;
-    private final SetSecurityContextFromHeadersFilter setSecurityContextFromHeadersFilter;
+//    private final SecurityHeadersPropagationFilter securityHeadersPropagationFilter;
+//    private final SetSecurityContextFromHeadersFilter setSecurityContextFromHeadersFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,8 +39,8 @@ public class SecurityConfig {
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .addFilterBefore(setSecurityContextFromHeadersFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(securityHeadersPropagationFilter, UsernamePasswordAuthenticationFilter.class)
+//                .addFilterBefore(setSecurityContextFromHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+//                .addFilterAfter(securityHeadersPropagationFilter, UsernamePasswordAuthenticationFilter.class)
                 .securityContext(securityContext -> securityContext.requireExplicitSave(true));
 
         return http.build();

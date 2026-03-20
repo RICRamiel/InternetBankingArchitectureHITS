@@ -23,7 +23,7 @@ public class EventEnrollListener {
     private String destination;
 
     private final CardAccountServiceImpl cardAccountService;
-    @KafkaListener(topics = "${app.kafka.topics.enroll}", groupId = "enroll")
+//    @KafkaListener(topics = "${app.kafka.topics.enroll}", groupId = "enroll")
     public void listenWithAck(@Payload EventEnrollDto eventEnrollDto, Acknowledgment acknowledgment) {
         try {
             EnrollDto enrollDto = eventEnrollDto.getData();
@@ -31,7 +31,6 @@ public class EventEnrollListener {
                 log.error("Received unexpected enroll event with destination {}", enrollDto.getDestination());
                 acknowledgment.acknowledge();
             }
-            cardAccountService.enroll(enrollDto);
             acknowledgment.acknowledge();
         } catch (Exception e) {
             log.error("Exception while processing enroll event", e);

@@ -12,4 +12,6 @@ import java.util.UUID;
 @Repository
 public interface CardAccountRepository extends JpaRepository<CardAccount, UUID>, PagingAndSortingRepository<CardAccount, UUID> {
     Page<CardAccount> findByUserId(UUID userId, Pageable pageable);
+
+    Integer countByUserIdAndName(UUID userId, String name);
 }

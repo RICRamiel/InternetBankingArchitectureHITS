@@ -1,6 +1,10 @@
 package org.ricramiel.coreapi.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,7 +27,11 @@ public class CardAccount {
 
     private String name;
     //нужно чтобы типа как по СБП по номеру телефона
+    @NotNull
     private Boolean isMain;
+    //Валюта счета
+    //нужна проверка на перевод
+    private String currency;
 
     private UUID userId;
 

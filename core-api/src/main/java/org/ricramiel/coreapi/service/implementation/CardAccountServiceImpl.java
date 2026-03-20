@@ -4,14 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.ricramiel.common.dtos.EnrollDto;
-import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.common.dtos.EventTransactionDto;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
-import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
+import org.ricramiel.coreapi.dto.CardAccountCreateDto;
 import org.ricramiel.coreapi.entity.CardAccount;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.entity.TransactionOperation;
+import org.ricramiel.coreapi.exception.CardAccountNameAlreadyUsedException;
 import org.ricramiel.coreapi.repository.CardAccountRepository;
 import org.ricramiel.coreapi.repository.OutboxRepository;
 import org.ricramiel.coreapi.repository.TransactionOperationRepository;
@@ -41,47 +42,71 @@ public class CardAccountServiceImpl implements CardAccountService {
     @Value("${spring.kafka.topic.withdraw_transaction}")
     private String WITHDRAW_TRANSACTION_TOPIC;
 
+    @Value("${spring.kafka.topic.enroll_transaction}")
+    private String ENROLL_TRANSACTION_TOPIC;
 
     //refactor
     @Override
+    @SneakyThrows
     @Transactional
-    public void enroll(EnrollDto enrollDto) {
-        CardAccount account = cardAccountRepository.findById(enrollDto.getCardAccountId())
+    public void enroll(TransactionKafkaDto dto) {
+        CardAccount account = cardAccountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
-        account.setMoney(account.getMoney().add(enrollDto.getSum()));
+        account.setMoney(account.getMoney().add(dto.getMoney()));
         cardAccountRepository.save(account);
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
-        transactionOperation.setMoney(enrollDto.getSum());
-        transactionOperation.setTransactionType(TransactionType.ENROLLMENT);
+        transactionOperation.setMoney(dto.getMoney());
+        transactionOperation.setTransactionType(dto.getTransactionType());
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
-        transactionOperation.setAction(enrollDto.getDestination());
-        transactionOperation.setDateTime(LocalDateTime.now());
-        transactionOperationRepository.save(transactionOperation);
+        transactionOperation.setAction(dto.getAction());
+        transactionOperation.setDateTime(dto.getDateTime());
+        TransactionOperation saved = transactionOperationRepository.save(transactionOperation);
+
+        //form kafkaEvent
+        dto.setId(saved.getId());
+        dto.setTransactionStatus(saved.getTransactionStatus());
+        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
+        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
+        outboxRepository.save(outboxEvent);
     }
 
     //refactor
     @Override
     @Transactional
     @SneakyThrows
-    public void withdraw(WithdrawDto withdrawDto) {
-        CardAccount account = cardAccountRepository.findById(withdrawDto.getCardAccountId())
-                .orElseThrow(() -> new NotFoundException("Account not found"));
-        if(account.getMoney().compareTo(withdrawDto.getSum()) < 0) {
-            log.debug("Withdraw transaction has been denied, due to not enough money");
-            // TODO Обработка недостатка средств с TransactionStatus = Declined
-        }
-        account.setMoney(account.getMoney().subtract(withdrawDto.getSum()));
-        cardAccountRepository.save(account);
-
+    public void withdraw(TransactionKafkaDto dto) {
         TransactionOperation transactionOperation = new TransactionOperation();
+        CardAccount account = cardAccountRepository.findById(dto.getAccountId())
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+
+        if (account.getMoney().compareTo(dto.getMoney()) >= 0) {
+            log.debug("Withdraw transaction has been denied, due to not enough money");
+            account.setMoney(account.getMoney().subtract(dto.getMoney()));
+            cardAccountRepository.save(account);
+            transactionOperation.setTransactionStatus(TransactionStatus.DECLINED);
+        } else {
+            transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        }
         transactionOperation.setAccount(account);
-        transactionOperation.setMoney(withdrawDto.getSum());
-        transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
-        transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
-        transactionOperation.setAction(withdrawDto.getDestination());
-        transactionOperation.setDateTime(LocalDateTime.now());
-        transactionOperationRepository.save(transactionOperation);
+        transactionOperation.setMoney(dto.getMoney());
+        transactionOperation.setTransactionType(dto.getTransactionType());
+        transactionOperation.setAction(dto.getAction());
+        transactionOperation.setDateTime(dto.getDateTime());
+        TransactionOperation saved = transactionOperationRepository.save(transactionOperation);
+
+        //form kafkaEvent
+        dto.setId(saved.getId());
+        dto.setTransactionStatus(saved.getTransactionStatus());
+        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
+        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
+        outboxRepository.save(outboxEvent);
     }
 
     @Override
@@ -90,13 +115,21 @@ public class CardAccountServiceImpl implements CardAccountService {
     }
 
     @Override
-    public CardAccount createAccount(UUID userId) {
-        CardAccount cardAccount = CardAccount.builder()
-                .userId(userId)
-                .money(BigDecimal.ZERO)
-                .deleted(false)
-                .build();
-        return cardAccountRepository.save(cardAccount);
+    public CardAccount createAccount(UUID userId, CardAccountCreateDto dto) {
+        //Реализовать уникальный нейминг в рамках пользователя
+        if (checkUnicNameByUser(userId, dto.getName())) {
+            CardAccount cardAccount = CardAccount.builder()
+                    .userId(userId)
+                    .money(BigDecimal.ZERO)
+                    .deleted(false)
+                    .name(dto.getName())
+                    .currency(dto.getCurrency())
+                    .isMain((dto.getIsMain() != null) && dto.getIsMain())
+                    .build();
+            return cardAccountRepository.save(cardAccount);
+        } else {
+            throw new CardAccountNameAlreadyUsedException("Account with this name already exists");
+        }
     }
 
     @Override
@@ -117,5 +150,12 @@ public class CardAccountServiceImpl implements CardAccountService {
     public CardAccount getAccountById(UUID accountId) {
         return cardAccountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found"));
+    }
+
+    /**
+     * Функция чека на уникальность имени счёта среди других счетов пользователя
+     */
+    private Boolean checkUnicNameByUser(UUID userId, String name) {
+        return cardAccountRepository.countByUserIdAndName(userId, name) <= 0;
     }
 }
