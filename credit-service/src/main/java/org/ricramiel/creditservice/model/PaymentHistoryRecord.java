@@ -2,6 +2,7 @@ package org.ricramiel.creditservice.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.ricramiel.common.enums.TransactionStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,4 +20,5 @@ public class PaymentHistoryRecord {
     private LocalDateTime date;
     private UUID userId;
     private UUID cardAccount;
+    private TransactionStatus transactionStatus;
 }

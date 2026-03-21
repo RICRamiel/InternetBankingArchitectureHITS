@@ -1,8 +1,6 @@
 package org.ricramiel.creditservice.kafka.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.dtos.EventEnrollDto;
 import org.ricramiel.common.enums.OutboxStatus;
@@ -18,16 +16,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Service
 @RequiredArgsConstructor
 public class CreditCreateProducer {
     private static final Logger LOG = LoggerFactory.getLogger(CreditCreateProducer.class);
-    private final KafkaTemplate<String, EventEnrollDto> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
 
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
@@ -48,12 +44,13 @@ public class CreditCreateProducer {
 
     private void sendToKafka(OutboxEvent outboxEventEntity) {
         try {
-            CompletableFuture<SendResult<String, EventEnrollDto>> sendResult = kafkaTemplate.send(
+            var sendResult =
+            kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
-                    objectMapper.readValue(outboxEventEntity.getPayload(), EventEnrollDto.class));
-            SendResult<String, EventEnrollDto> result = sendResult.get();
+                   outboxEventEntity.getPayload());
+            SendResult<String, Object> result = sendResult.get();
             LOG.info("Partition: {}", result.getRecordMetadata().partition());
-        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
+        } catch (InterruptedException | ExecutionException e) {
             LOG.error("Error sending event to Kafka: {}", e.getMessage());
         }
     }
