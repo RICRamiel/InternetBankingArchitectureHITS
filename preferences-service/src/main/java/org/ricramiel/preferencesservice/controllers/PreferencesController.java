@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.preferencesservice.dtos.UserPreferencesDto;
 import org.ricramiel.preferencesservice.services.PreferencesService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ public class PreferencesController {
     private final PreferencesService preferencesService;
 
     @GetMapping
+    @PreAuthorize("@accessChecker.isSelf(#id)")
     public ResponseEntity<UserPreferencesDto> getPreferences(
             @AuthenticationPrincipal UUID userId) {
         log.debug("GET preferences request for user: {}", userId);
@@ -26,6 +28,7 @@ public class PreferencesController {
     }
 
     @PutMapping
+    @PreAuthorize("@accessChecker.isSelf(#id)")
     public ResponseEntity<UserPreferencesDto> updatePreferences(
             @AuthenticationPrincipal UUID userId,
             @RequestBody UserPreferencesDto dto) {
