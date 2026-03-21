@@ -1,8 +1,6 @@
 package org.ricramiel.creditservice.kafka.producer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
-import org.ricramiel.common.dtos.EventEnrollDto;
 import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.creditservice.model.OutboxEvent;
 import org.ricramiel.creditservice.repository.OutboxRepository;

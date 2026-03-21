@@ -25,7 +25,6 @@ import java.util.Objects;
 public class TransactionListener {
 
     private final CardAccountServiceImpl cardAccountService;
-    //пока не понимаю почему читает только enroll
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "transaction")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
         try {
@@ -33,10 +32,10 @@ public class TransactionListener {
             log.info("transaction listener received data with destination: {}", dto.getAction());
             if(Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)){
                 if(Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)){
-                    cardAccountService.enroll(dto);
+                    cardAccountService.enroll(dto, eventTransactionDto.getDestination());
                 }
                 if(Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)){
-                    cardAccountService.withdraw(dto);
+                    cardAccountService.withdraw(dto, eventTransactionDto.getDestination());
                 }
             }
 

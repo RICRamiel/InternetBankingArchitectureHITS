@@ -11,8 +11,8 @@ import java.util.UUID;
 
 @Service
 public interface CardAccountService {
-    void enroll(TransactionKafkaDto dto);
-    void withdraw(TransactionKafkaDto dto);
+    void enroll(TransactionKafkaDto dto, String topicDest);
+    void withdraw(TransactionKafkaDto dto, String topicDest);
     Boolean checkAccountExistance(UUID accountId);
     CardAccount createAccount(UUID userId, CardAccountCreateDto dto);
     Boolean closeAccount(UUID accountId);

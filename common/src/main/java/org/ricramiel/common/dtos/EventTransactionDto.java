@@ -1,14 +1,22 @@
 package org.ricramiel.common.dtos;
 
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-
+@Data
 @NoArgsConstructor
-public class EventTransactionDto extends EventDto<TransactionKafkaDto> {
-    public EventTransactionDto(UUID id, TransactionKafkaDto data, LocalDateTime creationDate, String type) {
-        super(id, data, creationDate, type);
+public class EventTransactionDto{
+    private UUID id;
+    private TransactionKafkaDto data;
+    private LocalDateTime creationDate;
+    private String destination;
+    public EventTransactionDto(UUID id, TransactionKafkaDto data, LocalDateTime creationDate, String destination) {
+        this.id = id;
+        this.data = data;
+        this.creationDate = creationDate;
+        this.destination = destination;
     }
 }

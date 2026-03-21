@@ -49,7 +49,7 @@ public class CardAccountServiceImpl implements CardAccountService {
     @Override
     @SneakyThrows
     @Transactional
-    public void enroll(TransactionKafkaDto dto) {
+    public void enroll(TransactionKafkaDto dto, String topicDest) {
         CardAccount account = cardAccountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
         account.setMoney(account.getMoney().add(dto.getMoney()));
@@ -68,7 +68,7 @@ public class CardAccountServiceImpl implements CardAccountService {
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
-        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        String dest = (!topicDest.isEmpty()) ? topicDest : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
@@ -79,7 +79,7 @@ public class CardAccountServiceImpl implements CardAccountService {
     @Override
     @Transactional
     @SneakyThrows
-    public void withdraw(TransactionKafkaDto dto) {
+    public void withdraw(TransactionKafkaDto dto, String topicDest) {
         TransactionOperation transactionOperation = new TransactionOperation();
         CardAccount account = cardAccountRepository.findById(dto.getAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
@@ -105,7 +105,7 @@ public class CardAccountServiceImpl implements CardAccountService {
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
-        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        String dest = (!topicDest.isEmpty()) ? topicDest : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));

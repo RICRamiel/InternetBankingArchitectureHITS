@@ -2,7 +2,6 @@ package org.ricramiel.creditservice.kafka.consumer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ricramiel.common.dtos.EventDto;
 import org.ricramiel.common.dtos.EventWithdrawDto;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.creditservice.infrastructure.CreditServiceImpl;

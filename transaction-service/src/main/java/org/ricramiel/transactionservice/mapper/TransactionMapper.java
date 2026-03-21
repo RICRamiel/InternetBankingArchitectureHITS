@@ -6,12 +6,10 @@ import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.transactionservice.entity.OperationHistory;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Component
 public class TransactionMapper {
     public static TransactionKafkaDto toTransactionKafkaDto(WithdrawDto dto, String action) {
         return new TransactionKafkaDto(
