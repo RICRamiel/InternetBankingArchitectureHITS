@@ -29,13 +29,16 @@ public class TransactionKafkaDto {
 
     private BigDecimal money;
 
+    private String currency;
+
     public TransactionKafkaDto(UUID sourceId,
                                UUID accountId,
                                LocalDateTime dateTime,
                                TransactionType transactionType,
                                TransactionStatus transactionStatus,
                                String action,
-                               BigDecimal money) {
+                               BigDecimal money,
+                               String currency) {
         this.sourceId = sourceId;
         this.accountId = accountId;
         this.dateTime = dateTime;
@@ -43,5 +46,6 @@ public class TransactionKafkaDto {
         this.transactionStatus = transactionStatus;
         this.action = action;
         this.money = money;
+        this.currency = currency;
     }
 }

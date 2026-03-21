@@ -43,5 +43,7 @@ public class TransactionOperation {
 
     private String action;
 
+    private String currency;
+
     private BigDecimal money;
 }

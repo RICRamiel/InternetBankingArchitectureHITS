@@ -21,7 +21,8 @@ public class TransactionMapper {
                 TransactionType.WITHDRAWAL,
                 TransactionStatus.IN_PROGRESS,
                 action, //maybe dto.getDestination()?
-                dto.getSum()
+                dto.getSum(),
+                dto.getCurrency()
         );
     }
 
@@ -33,7 +34,8 @@ public class TransactionMapper {
                 TransactionType.ENROLLMENT,
                 TransactionStatus.IN_PROGRESS,
                 action, //maybe dto.getDestination()?
-                dto.getSum()
+                dto.getSum(),
+                dto.getCurrency()
         );
     }
 

@@ -14,4 +14,5 @@ public class WithdrawDto {
     private UUID cardAccountId;
     private BigDecimal sum;
     private String destination;
+    private String currency;
 }
