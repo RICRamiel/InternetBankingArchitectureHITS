@@ -39,8 +39,8 @@ public class KafkaMessageListener {
             paymentHistoryRecord.setTransactionStatus(transactionKafkaDto.getTransactionStatus());
             paymentHistoryRecordRepository.save(paymentHistoryRecord);
 
-            if (!Objects.equals(eventTransactionDto.getType(), type)){
-                log.error("Received unexpected withdraw event with destination {}", eventTransactionDto.getType());
+            if (!Objects.equals(eventTransactionDto.getDestination(), type)){
+                log.error("Received unexpected withdraw event with destination {}", eventTransactionDto.getDestination());
                 acknowledgment.acknowledge();
                 return;
             }

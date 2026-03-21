@@ -1,7 +1,6 @@
 package org.ricramiel.creditservice.infrastructure;
 
 import lombok.RequiredArgsConstructor;
-import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.creditservice.model.CreditRating;
 import org.ricramiel.creditservice.model.PaymentHistoryRecord;
 import org.ricramiel.creditservice.repository.CreditRatingRepository;

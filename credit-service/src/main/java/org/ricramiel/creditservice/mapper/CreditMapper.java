@@ -9,22 +9,6 @@ import java.util.stream.Collectors;
 
 public class CreditMapper {
 
-    public static Credit toCredit(CreditDTO creditDTO) {
-        if (creditDTO == null) {
-            return null;
-        }
-
-        Credit credit = new Credit();
-        credit.setCreditRule(creditDTO.getCreditRule());
-        credit.setCurrentDebtSum(creditDTO.getTotalDebt());
-        credit.setInitialDebt(creditDTO.getTotalDebt());
-        credit.setUserId(creditDTO.getUserId());
-        credit.setCardAccount(creditDTO.getCardAccount());
-        credit.setCurrency(creditDTO.getCurrency());
-
-        return credit;
-    }
-
     public static CreditAnswerDTO toAnswerDto(Credit credit){
         if(credit == null){
             return null;

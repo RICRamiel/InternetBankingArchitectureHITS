@@ -9,7 +9,6 @@ import org.ricramiel.common.enums.TransactionStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Currency;
 import java.util.UUID;
 
 @Data

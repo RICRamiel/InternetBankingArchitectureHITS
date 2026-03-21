@@ -1,6 +1,5 @@
 package org.ricramiel.creditservice.infrastructure;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -25,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -62,7 +62,7 @@ public class ScheduledService {
 
                 for (int i = 0; i < iterationsAmount; i++) {
                     credit.setLastInterestUpdate(LocalDateTime.now());
-                    credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100)))));
+                    credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100), RoundingMode.CEILING))));
                 }
 
 
@@ -131,7 +131,7 @@ public class ScheduledService {
         eventTransactionDto.setCreationDate(LocalDateTime.now());
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
-        eventTransactionDto.setType(TYPE);
+        eventTransactionDto.setDestination(TYPE);
         outboxEvent.setPayload(objectMapper.writeValueAsString(eventTransactionDto));
         outboxRepository.save(outboxEvent);
     }
