@@ -4,11 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 
 import lombok.SneakyThrows;
+import org.ricramiel.common.dtos.EventTransactionDto;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
+import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.CreditAlreadyExistsException;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.model.Credit;
+import org.ricramiel.creditservice.model.CreditRating;
 import org.ricramiel.creditservice.model.CreditRule;
+import org.ricramiel.creditservice.model.OutboxEvent;
+import org.ricramiel.creditservice.repository.CreditRatingRepository;
 import org.ricramiel.creditservice.repository.CreditRepository;
 import org.ricramiel.creditservice.repository.CreditRuleRepository;
 import org.ricramiel.creditservice.repository.OutboxRepository;
@@ -32,12 +39,13 @@ public class CreditServiceImpl implements CreditService {
     private final CreditRuleRepository creditRuleRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
-    @Value("${app.kafka.destination}")
-    private String destination;
-    @Value("${type.enroll}")
-    private String TYPE_ENROLL;
+    private final CreditRatingRepository creditRatingRepository;
+
     @Value("${app.kafka.topics.enroll}")
     private String ENROLL_TRANSACTION_TOPIC;
+
+    @Value("${type.enroll}")
+    private String TYPE;
 
     @Override
     @Transactional
@@ -54,22 +62,45 @@ public class CreditServiceImpl implements CreditService {
                 .initialDebt(creditDTO.getTotalDebt())
                 .currentDebtSum(BigDecimal.ZERO)
                 .interestDebtSum(BigDecimal.ZERO)
+                .currency(creditDTO.getCurrency())
                 .cardAccount(creditDTO.getCardAccount())
                 .userId(creditDTO.getUserId())
                 .lastInterestUpdate(LocalDateTime.now())
                 .build();
         eventCreateCredit(credit);
+
+        CreditRating creditRating = new CreditRating();
+
+        creditRating.setRating(BigDecimal.valueOf(100));
+        creditRating.setUserId(credit.getUserId());
+        creditRatingRepository.save(creditRating);
+
         return creditRepository.save(credit);
     }
 
     @SneakyThrows
-    private void eventCreateCredit(Credit credit){/*
-        EnrollDto enrollDto = new EnrollDto(credit.getCardAccount(), credit.getInitialDebt(), destination);
-        EventEnrollDto eventEnrollDto = new EventEnrollDto(UUID.randomUUID(), enrollDto, LocalDateTime.now(), TYPE_ENROLL);
+    private void eventCreateCredit(Credit credit){
+
+        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto(
+                null,
+                credit.getCardAccount(),
+                LocalDateTime.now(),
+                TransactionType.ENROLLMENT,
+                TransactionStatus.IN_PROGRESS,
+                "ENROLL",
+                credit.getInitialDebt(),
+                credit.getCurrency());
+
+        EventTransactionDto eventTransactionDto = new EventTransactionDto();
+        eventTransactionDto.setDestination(TYPE);
+        eventTransactionDto.setData(transactionKafkaDto);
+        eventTransactionDto.setId(UUID.randomUUID());
+        eventTransactionDto.setCreationDate(LocalDateTime.now());
+
         OutboxEvent outboxEvent = new OutboxEvent();
-        outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + enrollDto.getDestination());
-        outboxEvent.setPayload(objectMapper.writeValueAsString(eventEnrollDto));
-        outboxRepository.save(outboxEvent);*/
+        outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(eventTransactionDto));
+        outboxRepository.save(outboxEvent);
     }
 
     @Override

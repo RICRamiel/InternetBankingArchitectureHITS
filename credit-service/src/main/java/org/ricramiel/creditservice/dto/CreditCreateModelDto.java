@@ -15,6 +15,7 @@ import java.util.UUID;
 public class CreditCreateModelDto {
     private UUID userId;
     private UUID cardAccount;
+    private String currency;
     private BigDecimal totalDebt;
     private UUID creditRuleId;
 }

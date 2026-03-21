@@ -12,6 +12,7 @@ public class CreditAnswerDTO {
     private LocalDateTime lastInterestUpdate;
     private UUID userId;
     private UUID cardAccount;
+    private String currency;
     private BigDecimal currentDebtSum;
     private BigDecimal initialDebt;
     private BigDecimal interestDebtSum;

@@ -19,7 +19,7 @@ public class PaymentHistoryRecordMapper {
         paymentHistoryRecordDTO.setId(paymentHistoryRecord.getId());
         paymentHistoryRecordDTO.setDate(paymentHistoryRecord.getDate());
         paymentHistoryRecordDTO.setCardAccount(paymentHistoryRecord.getCardAccount());
-        paymentHistoryRecordDTO.setUserId(paymentHistoryRecord.getUserId());
+        paymentHistoryRecordDTO.setCurrency(paymentHistoryRecord.getCurrency());
         paymentHistoryRecordDTO.setSum(paymentHistoryRecord.getSum());
         paymentHistoryRecordDTO.setTransactionStatus(paymentHistoryRecord.getTransactionStatus());
 

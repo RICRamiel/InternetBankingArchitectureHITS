@@ -3,7 +3,7 @@ package org.ricramiel.creditservice.infrastructure;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.creditservice.model.PaymentHistoryRecord;
 import org.ricramiel.creditservice.repository.PaymentHistoryRecordRepository;
-import org.ricramiel.creditservice.service.PaymentHistoryRepositoryService;
+import org.ricramiel.creditservice.service.PaymentHistoryRecordService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class PaymentHistoryRepositoryServiceImpl implements PaymentHistoryRepositoryService {
+public class PaymentHistoryRecordServiceImpl implements PaymentHistoryRecordService {
 
     private final PaymentHistoryRecordRepository paymentHistoryRecordRepository;
 

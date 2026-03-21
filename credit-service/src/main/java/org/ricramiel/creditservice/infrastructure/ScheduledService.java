@@ -1,13 +1,24 @@
 package org.ricramiel.creditservice.infrastructure;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
+import org.ricramiel.creditservice.model.OutboxEvent;
+import org.ricramiel.creditservice.model.PaymentHistoryRecord;
 import org.ricramiel.creditservice.repository.CreditRepository;
+import org.ricramiel.creditservice.repository.OutboxRepository;
 import org.ricramiel.creditservice.service.CreditService;
+import org.ricramiel.creditservice.service.PaymentHistoryRecordService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -25,6 +36,15 @@ public class ScheduledService {
 
     private final CreditService creditService;
     private final CreditRepository creditRepository;
+    private final PaymentHistoryRecordService paymentHistoryRecordService;
+    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.kafka.topics.withdraw}")
+    private String TRANSACTION_WITHDRAW;
+
+    @Value("${type.withdraw}")
+    private String TYPE;
 
     @Scheduled(fixedRate = 120_000)
     @Transactional
@@ -78,6 +98,41 @@ public class ScheduledService {
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);
         withdrawDto.setDestination("credit");
-        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto();
+
+        PaymentHistoryRecord paymentHistoryRecord = PaymentHistoryRecord.builder()
+                .sum(money)
+                .date(LocalDateTime.now())
+                .cardAccount(cardAccountId)
+                .transactionStatus(TransactionStatus.IN_PROGRESS)
+                .currency(creditRepository.findByCardAccount(cardAccountId).getCurrency())
+                .build();
+
+        paymentHistoryRecord = paymentHistoryRecordService.createHistoryRecord(paymentHistoryRecord);
+
+        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto(
+                paymentHistoryRecord.getId(),
+                cardAccountId,
+                paymentHistoryRecord.getDate(),
+                TransactionType.WITHDRAWAL,
+                paymentHistoryRecord.getTransactionStatus(),
+                "WITHDRAW",
+                money,
+                paymentHistoryRecord.getCurrency());
+
+        sendToKafka(transactionKafkaDto);
+    }
+
+    @SneakyThrows
+    @Transactional
+    public void sendToKafka(TransactionKafkaDto transactionKafkaDto){
+        OutboxEvent outboxEvent = new OutboxEvent();
+        outboxEvent.setOutboxTopic(TRANSACTION_WITHDRAW);
+        EventTransactionDto eventTransactionDto = new EventTransactionDto();
+        eventTransactionDto.setCreationDate(LocalDateTime.now());
+        eventTransactionDto.setData(transactionKafkaDto);
+        eventTransactionDto.setId(UUID.randomUUID());
+        eventTransactionDto.setType(TYPE);
+        outboxEvent.setPayload(objectMapper.writeValueAsString(eventTransactionDto));
+        outboxRepository.save(outboxEvent);
     }
 }

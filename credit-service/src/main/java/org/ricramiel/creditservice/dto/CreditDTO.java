@@ -11,5 +11,6 @@ public class CreditDTO {
     private UUID userId;
     private UUID cardAccount;
     private BigDecimal totalDebt;
+    private String currency;
     private CreditRule creditRule;
 }

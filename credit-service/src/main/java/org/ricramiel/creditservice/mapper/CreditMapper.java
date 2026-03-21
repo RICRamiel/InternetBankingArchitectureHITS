@@ -20,6 +20,7 @@ public class CreditMapper {
         credit.setInitialDebt(creditDTO.getTotalDebt());
         credit.setUserId(creditDTO.getUserId());
         credit.setCardAccount(creditDTO.getCardAccount());
+        credit.setCurrency(creditDTO.getCurrency());
 
         return credit;
     }
@@ -36,6 +37,7 @@ public class CreditMapper {
         creditAnswerDTO.setCardAccount(credit.getCardAccount());
         creditAnswerDTO.setCurrentDebtSum(credit.getCurrentDebtSum());
         creditAnswerDTO.setInitialDebt(credit.getInitialDebt());
+        creditAnswerDTO.setCurrency(credit.getCurrency());
         creditAnswerDTO.setInterestDebtSum(credit.getInterestDebtSum());
         creditAnswerDTO.setCreditRule(CreditRuleMapper.toAnswerDto(credit.getCreditRule()));
 
