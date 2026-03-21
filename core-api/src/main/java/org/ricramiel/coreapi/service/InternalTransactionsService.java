@@ -3,6 +3,8 @@ package org.ricramiel.coreapi.service;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.dtos.EnrollDto;
 import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.coreapi.dto.CurrencyConvertRequestDto;
+import org.ricramiel.coreapi.model.TransferCurrencyRequest;
 import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -26,6 +29,7 @@ import java.util.UUID;
 public class InternalTransactionsService {
     private final CardAccountRepository cardAccountRepository;
     private final TransactionOperationRepository transactionOperationRepository;
+    private final CurrencyService currencyService;
 
     @Value("${application.master_account.id}")
     private UUID masterAccountId;
@@ -62,6 +66,15 @@ public class InternalTransactionsService {
     }
 
     @Transactional
+    public TransferResult transfer(TransferCurrencyRequest model) {
+        return transfer(
+                model,
+                "Перевод на: " + model.getToCardAccountId(),
+                "Перевод от: " + model.getFromCardAccountId()
+        );
+    }
+
+    @Transactional
     public TransferResult transfer(TransferRequest model, String withdrawAction, String enrollAction) {
         WithdrawRequest withdrawDto = WithdrawRequest.builder()
                 .cardAccountId(model.getFromCardAccountId())
@@ -73,6 +86,28 @@ public class InternalTransactionsService {
                 .cardAccountId(model.getToCardAccountId())
                 .sum(model.getSum())
                 .currency(model.getCurrency())
+                .build();
+
+        return transfer(enrollDto, withdrawDto, withdrawAction,  enrollAction);
+    }
+
+    @Transactional
+    public TransferResult transfer(TransferCurrencyRequest model, String withdrawAction, String enrollAction) {
+        WithdrawRequest withdrawDto = WithdrawRequest.builder()
+                .cardAccountId(model.getFromCardAccountId())
+                .sum(model.getSumFrom())
+                .currency(model.getCurrencyFrom())
+                .build();
+
+        //Блок на конвертацию
+        BigDecimal sumTo = currencyService.convertCurrency(
+                new CurrencyConvertRequestDto(model.getCurrencyFrom(),model.getCurrencyTo(), model.getSumFrom())
+        ).getAmountTo();
+        //
+        EnrollRequest enrollDto = EnrollRequest.builder()
+                .cardAccountId(model.getToCardAccountId())
+                .sum(sumTo)
+                .currency(model.getCurrencyTo())
                 .build();
 
         return transfer(enrollDto, withdrawDto, withdrawAction,  enrollAction);

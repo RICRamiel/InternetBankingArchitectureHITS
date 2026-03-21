@@ -10,6 +10,7 @@ import org.ricramiel.common.exceptions.status_code_exceptions.BadRequestExceptio
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.entity.TransactionOperation;
 import org.ricramiel.coreapi.model.EnrollRequest;
+import org.ricramiel.coreapi.model.TransferCurrencyRequest;
 import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.coreapi.model.TransferResult;
 import org.ricramiel.coreapi.model.WithdrawRequest;
@@ -103,6 +104,14 @@ public class ExternalTransactionsService {
 
     @Transactional
     public void transfer(TransferRequest model) {
+        TransferResult result = internalTransactionsService.transfer(model);
+        if (!result.isSucceded()){
+            throw new BadRequestException("Transfer failed");
+        }
+    }
+
+    @Transactional
+    public void transfer(TransferCurrencyRequest model) {
         TransferResult result = internalTransactionsService.transfer(model);
         if (!result.isSucceded()){
             throw new BadRequestException("Transfer failed");

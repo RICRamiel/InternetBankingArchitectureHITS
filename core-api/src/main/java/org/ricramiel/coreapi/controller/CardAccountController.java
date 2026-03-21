@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +27,7 @@ public class CardAccountController {
     private final CardAccountServiceImpl cardAccountService;
 
     @GetMapping("/all/{userId}")
+    @PreAuthorize("hasRole('WORKER') or @accessChecker.isSelf(#userId)")
     public ResponseEntity<Page<CardAccount>> getUserCardAccounts(
             @PathVariable("userId") @Param("userId") UUID userId,
             @RequestParam(required = false, defaultValue = "0", name = "pageIndex") int pageIndex,
@@ -33,6 +36,7 @@ public class CardAccountController {
     }
 
     @GetMapping("/{accountId}")
+    @PreAuthorize("hasRole('WORKER') or @accessChecker.isCardAccountOwner(#accountId)")
     public ResponseEntity<CardAccount> getUserCardAccount(@PathVariable("accountId") @Param("accountId") UUID accountId) {
         return ResponseEntity.ok(cardAccountService.getAccountById(accountId));
     }
@@ -43,11 +47,13 @@ public class CardAccountController {
     }
 
     @PostMapping("/open/{userId}")
+    @PreAuthorize("hasRole('WORKER') or @accessChecker.isSelf(#userId)")
     public ResponseEntity<CardAccount> openAccount(@PathVariable("userId") @Param("userId") UUID userId, @RequestBody CardAccountCreateDto dto) {
         return ResponseEntity.ok(cardAccountService.createAccount(userId, dto));
     }
 
     @PostMapping("/close/{accountId}")
+    @PreAuthorize("hasRole('WORKER') or @accessChecker.isCardAccountOwner(#accountId)")
     public ResponseEntity<Boolean> closeAccount(@PathVariable("accountId") @Param("accountId") UUID accountId) {
         return ResponseEntity.ok(cardAccountService.closeAccount(accountId));
     }

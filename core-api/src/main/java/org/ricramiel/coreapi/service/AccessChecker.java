@@ -20,9 +20,9 @@ public class AccessChecker {
         return userId.equals(currentUserId);
     }
 
-    public boolean isOwner(UUID cardAccountId) {
+    public boolean isCardAccountOwner(UUID cardAccountId) {
         CardAccount cardAccount = cardAccountRepository.findById(cardAccountId)
-                .orElseThrow(() -> new EntityNotFoundException("Car not found with id: " + cardAccountId));
+                .orElseThrow(() -> new EntityNotFoundException("Card account not found with id: " + cardAccountId));
 
         return cardAccount.getUserId().equals(userService.getUserId());
     }
