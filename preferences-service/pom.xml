@@ -7,10 +7,10 @@
         <artifactId>InternetBankingArchitecture</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>transaction-service</artifactId>
+    <artifactId>preferences-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>transaction-service</name>
-    <description>transaction-service</description>
+    <name>preferences-service</name>
+    <description>preferences-service</description>
     <url/>
     <licenses>
         <license/>
