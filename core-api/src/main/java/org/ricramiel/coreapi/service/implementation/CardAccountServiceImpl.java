@@ -4,15 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.ricramiel.common.dtos.EventTransactionDto;
-import org.ricramiel.common.dtos.TransactionKafkaDto;
+import org.ricramiel.common.dtos.*;
 import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
 import org.ricramiel.coreapi.dto.CardAccountCreateDto;
 import org.ricramiel.coreapi.entity.CardAccount;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.entity.TransactionOperation;
 import org.ricramiel.coreapi.exception.CardAccountNameAlreadyUsedException;
+import org.ricramiel.coreapi.mapper.TransactionMapper;
 import org.ricramiel.coreapi.repository.CardAccountRepository;
 import org.ricramiel.coreapi.repository.OutboxRepository;
 import org.ricramiel.coreapi.repository.TransactionOperationRepository;
@@ -153,6 +154,65 @@ public class CardAccountServiceImpl implements CardAccountService {
     public CardAccount getAccountById(UUID accountId) {
         return cardAccountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found"));
+    }
+
+    @Override
+    @Transactional
+    public void transfer(TransferDto model) {
+        WithdrawDto withdrawDto = WithdrawDto.builder()
+                .cardAccountId(model.getFromCardAccountId())
+                .sum(model.getSum())
+                .currency(model.getCurrency())
+                .destination("")
+                .build();
+
+        EnrollDto enrollDto = EnrollDto.builder()
+                .cardAccountId(model.getToCardAccountId())
+                .sum(model.getSum())
+                .currency(model.getCurrency())
+                .destination("")
+                .build();
+
+        withdraw(withdrawDto, "Перевод на: " + model.getToCardAccountId());
+        enroll(enrollDto, "Перевод от: " + model.getFromCardAccountId());
+    }
+
+    @SneakyThrows
+    private TransactionOperation enroll(EnrollDto dto, String action) {
+        CardAccount account = cardAccountRepository.findById(dto.getCardAccountId())
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+
+        account.setMoney(account.getMoney().add(dto.getSum()));
+        cardAccountRepository.save(account);
+
+        TransactionOperation transactionOperation = new TransactionOperation();
+        transactionOperation.setAccount(account);
+        transactionOperation.setCurrency(dto.getCurrency().toUpperCase());
+        transactionOperation.setMoney(dto.getSum());
+        transactionOperation.setTransactionType(TransactionType.ENROLLMENT);
+        transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        transactionOperation.setAction(action);
+        transactionOperation.setDateTime(LocalDateTime.now());
+        return transactionOperationRepository.save(transactionOperation);
+    }
+
+    @SneakyThrows
+    private TransactionOperation withdraw(WithdrawDto dto, String action) {
+        CardAccount account = cardAccountRepository.findById(dto.getCardAccountId())
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+
+        account.setMoney(account.getMoney().add(dto.getSum()));
+        cardAccountRepository.save(account);
+
+        TransactionOperation transactionOperation = new TransactionOperation();
+        transactionOperation.setAccount(account);
+        transactionOperation.setCurrency(dto.getCurrency().toUpperCase());
+        transactionOperation.setMoney(dto.getSum());
+        transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
+        transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        transactionOperation.setAction(action);
+        transactionOperation.setDateTime(LocalDateTime.now());
+        return transactionOperationRepository.save(transactionOperation);
     }
 
     /**
