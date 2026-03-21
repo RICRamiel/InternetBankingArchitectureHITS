@@ -1,11 +1,14 @@
 package org.ricramiel.creditservice.infrastructure;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.PaymentHistoryRecord;
 import org.ricramiel.creditservice.repository.PaymentHistoryRecordRepository;
+import org.ricramiel.creditservice.service.CreditService;
 import org.ricramiel.creditservice.service.PaymentHistoryRecordService;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +17,7 @@ import java.util.UUID;
 public class PaymentHistoryRecordServiceImpl implements PaymentHistoryRecordService {
 
     private final PaymentHistoryRecordRepository paymentHistoryRecordRepository;
+    private final CreditService creditService;
 
     @Override
     public PaymentHistoryRecord createHistoryRecord(PaymentHistoryRecord paymentHistoryRecord) {
@@ -22,7 +26,20 @@ public class PaymentHistoryRecordServiceImpl implements PaymentHistoryRecordServ
 
     @Override
     public List<PaymentHistoryRecord> getHistoryByUserId(UUID userId) {
-        return paymentHistoryRecordRepository.findAllByUserId(userId);
+
+        List<Credit> credits = creditService.getByUserId(userId);
+        List<UUID> cardAccounts = new ArrayList<>();
+        List<PaymentHistoryRecord> paymentHistoryRecords = new ArrayList<>();
+
+        for (Credit credit : credits) {
+            cardAccounts.add(credit.getCardAccount());
+        }
+
+        for (UUID cardAccount : cardAccounts) {
+            paymentHistoryRecords.addAll(getHistoryByCardAccount(cardAccount));
+        }
+
+        return paymentHistoryRecords;
     }
 
     @Override
