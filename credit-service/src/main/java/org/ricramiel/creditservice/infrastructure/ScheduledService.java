@@ -1,0 +1,83 @@
+package org.ricramiel.creditservice.infrastructure;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
+import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.creditservice.model.Credit;
+import org.ricramiel.creditservice.model.CreditRule;
+import org.ricramiel.creditservice.repository.CreditRepository;
+import org.ricramiel.creditservice.service.CreditService;
+import org.springframework.data.domain.Page;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ScheduledService {
+
+    private final CreditService creditService;
+    private final CreditRepository creditRepository;
+
+    @Scheduled(fixedRate = 120_000)
+    @Transactional
+    protected void interestUpdater() {
+        int size = 100;
+        int pageNumber = 0;
+        Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
+
+        while (!credits.isEmpty()) {
+            credits.forEach(credit -> {
+                CreditRule creditRule = credit.getCreditRule();
+
+                long iterationsAmount = Duration.between(credit.getLastInterestUpdate(), LocalDateTime.now()).getSeconds() / creditRule.getCollectionPeriodSeconds();
+
+
+                for (int i = 0; i < iterationsAmount; i++) {
+                    credit.setLastInterestUpdate(LocalDateTime.now());
+                    credit.setInterestDebtSum(credit.getInterestDebtSum().add(credit.getCurrentDebtSum().multiply(creditRule.getPercentage().divide(new BigDecimal(100)))));
+                }
+
+
+                creditRepository.save(credit);
+            });
+            pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
+        }
+    }
+
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    protected void moneyCall() {
+        int size = 100;
+        int pageNumber = 0;
+        Page<Credit> credits = creditService.findAllPageable(pageNumber, size);
+
+        while (!credits.isEmpty()) {
+            credits.forEach(credit -> {
+
+                if(!credit.getInterestDebtSum().equals(BigDecimal.ZERO)){
+                    withdraw(credit.getCardAccount(), credit.getInterestDebtSum());
+                }
+            });
+            pageNumber++;
+            credits = creditService.findAllPageable(pageNumber, size);
+        }
+    }
+
+    @Transactional
+    public void withdraw(UUID cardAccountId, BigDecimal money) {
+        WithdrawDto withdrawDto = new WithdrawDto();
+        withdrawDto.setCardAccountId(cardAccountId);
+        withdrawDto.setSum(money);
+        withdrawDto.setDestination("credit");
+        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto();
+    }
+}

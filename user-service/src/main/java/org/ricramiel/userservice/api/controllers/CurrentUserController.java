@@ -10,6 +10,7 @@ import org.ricramiel.userservice.api.mappers.UserEditModelMapper;
 import org.ricramiel.userservice.api.mappers.UserMapper;
 import org.ricramiel.userservice.domain.services.CurrentUserService;
 import org.ricramiel.userservice.domain.services.UsersService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +28,7 @@ public class CurrentUserController {
         return userMapper.toDto(currentUserService.getUser());
     }
 
+    @PreAuthorize("hasRole('WORKER')")
     @PutMapping("edit")
     public void editUser(@Valid @RequestBody UserEditModelDto model) {
         usersService.editUserById(currentUserService.getId(), userEditModelMapper.toDomain(model));

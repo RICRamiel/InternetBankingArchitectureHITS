@@ -11,8 +11,10 @@ import org.ricramiel.userservice.domain.models.requests.UserEditRequestModel;
 import org.ricramiel.userservice.domain.services.UsersService;
 import org.ricramiel.userservice.infrastructure.repositories.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,12 +32,17 @@ public class UsersServiceImpl implements UsersService {
     }
 
     @Override
+    @Transactional
     public User editUserById(@NonNull UUID id, @Valid @NonNull UserEditRequestModel userEditModel) {
         User user = userRepository
                 .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + id));
 
-        user.setName(userEditModel.getName());
+        user.getRoles().clear();
+
+        if (userEditModel.getRoles() != null) {
+            user.getRoles().addAll(userEditModel.getRoles());
+        }
 
         User saved = userRepository.save(user);
         log.info("Edited user with id: {}", saved.getId());
@@ -53,5 +60,10 @@ public class UsersServiceImpl implements UsersService {
         User saved = userRepository.save(user);
         log.info("Deleted user with id: {}", saved.getId());
         return saved;
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }
