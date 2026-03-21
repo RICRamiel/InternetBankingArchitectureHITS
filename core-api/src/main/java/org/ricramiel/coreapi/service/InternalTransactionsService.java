@@ -29,7 +29,9 @@ import java.util.UUID;
 public class InternalTransactionsService {
     private final CardAccountRepository cardAccountRepository;
     private final TransactionOperationRepository transactionOperationRepository;
+    private final TransactionOperationServiceImpl transactionOperationService;
     private final CurrencyService currencyService;
+    private final WebSocketPushService webSocketPushService;
 
     @Value("${application.master_account.id}")
     private UUID masterAccountId;
@@ -138,7 +140,9 @@ public class InternalTransactionsService {
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
         transactionOperation.setAction(action);
         transactionOperation.setDateTime(LocalDateTime.now());
-        return transactionOperationRepository.save(transactionOperation);
+        TransactionOperation res = transactionOperationRepository.save(transactionOperation);
+        pushUpdate(res);
+        return res;
     }
 
     public TransactionOperation withdraw(WithdrawRequest request, String action) {
@@ -159,6 +163,12 @@ public class InternalTransactionsService {
         transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
         transactionOperation.setAction(action);
         transactionOperation.setDateTime(LocalDateTime.now());
-        return transactionOperationRepository.save(transactionOperation);
+        TransactionOperation res = transactionOperationRepository.save(transactionOperation);
+        pushUpdate(res);
+        return res;
+    }
+
+    public void pushUpdate(TransactionOperation transactionOperation){
+        webSocketPushService.pushToAccount(transactionOperation.getAccount().getId(), transactionOperation);
     }
 }
