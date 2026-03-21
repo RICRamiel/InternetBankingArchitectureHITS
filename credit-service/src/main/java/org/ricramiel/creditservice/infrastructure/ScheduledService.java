@@ -2,6 +2,7 @@ package org.ricramiel.creditservice.infrastructure;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
@@ -77,5 +78,6 @@ public class ScheduledService {
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);
         withdrawDto.setDestination("credit");
+        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto();
     }
 }
