@@ -20,7 +20,7 @@ public class PreferencesController {
     private final PreferencesService preferencesService;
 
     @GetMapping
-    @PreAuthorize("@accessChecker.isSelf(#id)")
+    @PreAuthorize("@accessChecker.isSelf(#userId)")
     public ResponseEntity<UserPreferencesDto> getPreferences(
             @AuthenticationPrincipal UUID userId) {
         log.debug("GET preferences request for user: {}", userId);
@@ -28,7 +28,7 @@ public class PreferencesController {
     }
 
     @PutMapping
-    @PreAuthorize("@accessChecker.isSelf(#id)")
+    @PreAuthorize("@accessChecker.isSelf(#userId)")
     public ResponseEntity<UserPreferencesDto> updatePreferences(
             @AuthenticationPrincipal UUID userId,
             @RequestBody UserPreferencesDto dto) {
