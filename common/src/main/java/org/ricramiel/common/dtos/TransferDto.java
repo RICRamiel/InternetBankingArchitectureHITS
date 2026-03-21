@@ -1,7 +1,6 @@
 package org.ricramiel.common.dtos;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,10 +10,9 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class WithdrawDto {
-    private UUID cardAccountId;
+public class TransferDto {
+    private UUID fromCardAccountId;
+    private UUID toCardAccountId;
     private BigDecimal sum;
-    private String destination;
     private String currency;
 }
