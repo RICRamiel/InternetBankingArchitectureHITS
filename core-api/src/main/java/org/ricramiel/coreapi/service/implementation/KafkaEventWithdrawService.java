@@ -5,12 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventTransactionDto;
-import org.ricramiel.common.dtos.EventWithdrawDto;
 import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.repository.OutboxRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -40,22 +37,24 @@ public class KafkaEventWithdrawService {
             for (OutboxEvent outboxEvent : listOfOutboxEventEntities) {
                 log.info("Sending event to Kafka");
                 outboxEvent.setStatus(OutboxStatus.SEND);
-                outboxRepository.save(outboxEvent);
-                sendToKafka(outboxEvent);
-//                outboxRepository.deleteById(outboxEvent.getId());
+                if (sendToKafka(outboxEvent)) {
+                    outboxRepository.save(outboxEvent);
+                }
             }
         }
     }
 
-    private void sendToKafka(OutboxEvent outboxEventEntity) {
+    private boolean sendToKafka(OutboxEvent outboxEventEntity) {
         try {
             CompletableFuture<SendResult<String, EventTransactionDto>> sendResult = kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
                     objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class));
             SendResult<String, EventTransactionDto> result = sendResult.get();
             log.info("Partition: {}", result.getRecordMetadata().partition());
+            return true;
         } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
             log.error("Error sending event to Kafka: {}", e.getMessage());
+            return false;
         }
     }
 }

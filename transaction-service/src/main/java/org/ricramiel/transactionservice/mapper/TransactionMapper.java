@@ -22,7 +22,7 @@ public class TransactionMapper {
                 TransactionStatus.IN_PROGRESS,
                 action, //maybe dto.getDestination()?
                 dto.getSum(),
-                dto.getCurrency()
+                dto.getCurrency().toUpperCase()
         );
     }
 
@@ -35,7 +35,7 @@ public class TransactionMapper {
                 TransactionStatus.IN_PROGRESS,
                 action, //maybe dto.getDestination()?
                 dto.getSum(),
-                dto.getCurrency()
+                dto.getCurrency().toUpperCase()
         );
     }
 

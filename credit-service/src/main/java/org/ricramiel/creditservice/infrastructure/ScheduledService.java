@@ -2,8 +2,8 @@ package org.ricramiel.creditservice.infrastructure;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.dtos.WithdrawDto;
-import org.ricramiel.creditservice.client.CoreClient;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.repository.CreditRepository;
@@ -25,7 +25,6 @@ public class ScheduledService {
 
     private final CreditService creditService;
     private final CreditRepository creditRepository;
-    private final CoreClient coreClient;
 
     @Scheduled(fixedRate = 120_000)
     @Transactional
@@ -79,6 +78,6 @@ public class ScheduledService {
         withdrawDto.setCardAccountId(cardAccountId);
         withdrawDto.setSum(money);
         withdrawDto.setDestination("credit");
-        coreClient.askForWithdraw(withdrawDto);
+        TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto();
     }
 }

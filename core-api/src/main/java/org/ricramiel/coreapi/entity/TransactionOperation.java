@@ -43,6 +43,7 @@ public class TransactionOperation {
 
     private String action;
 
+    //Храним по международному стандарту в upperCase
     private String currency;
 
     private BigDecimal money;
