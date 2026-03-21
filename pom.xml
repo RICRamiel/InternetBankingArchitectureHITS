@@ -52,5 +52,6 @@
         <module>core-api</module>
         <module>common</module>
         <module>api-gateway</module>
+        <module>preferences-service</module>
     </modules>
 </project>

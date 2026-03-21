@@ -66,13 +66,13 @@ public class CreditServiceImpl implements CreditService {
     }
 
     @SneakyThrows
-    private void eventCreateCredit(Credit credit){
+    private void eventCreateCredit(Credit credit){/*
         EnrollDto enrollDto = new EnrollDto(credit.getCardAccount(), credit.getInitialDebt(), destination);
         EventEnrollDto eventEnrollDto = new EventEnrollDto(UUID.randomUUID(), enrollDto, LocalDateTime.now(), TYPE_ENROLL);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + enrollDto.getDestination());
         outboxEvent.setPayload(objectMapper.writeValueAsString(eventEnrollDto));
-        outboxRepository.save(outboxEvent);
+        outboxRepository.save(outboxEvent);*/
     }
 
     @Override
