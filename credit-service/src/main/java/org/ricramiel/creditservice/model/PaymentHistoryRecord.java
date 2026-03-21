@@ -21,7 +21,6 @@ public class PaymentHistoryRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
     private BigDecimal sum;
     private LocalDateTime date;
     private String currency;

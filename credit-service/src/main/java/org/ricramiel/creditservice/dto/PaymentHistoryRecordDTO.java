@@ -12,7 +12,6 @@ public class PaymentHistoryRecordDTO {
     private UUID id;
     private BigDecimal sum;
     private LocalDateTime date;
-    private UUID userId;
     private UUID cardAccount;
     private String currency;
     private TransactionStatus transactionStatus;

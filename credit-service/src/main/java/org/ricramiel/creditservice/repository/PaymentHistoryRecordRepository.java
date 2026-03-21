@@ -9,7 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface PaymentHistoryRecordRepository extends JpaRepository<PaymentHistoryRecord, UUID> {
-    List<PaymentHistoryRecord> findAllByUserId(UUID userId);
 
     List<PaymentHistoryRecord> findAllByCardAccount(UUID cardAccount);
 }
