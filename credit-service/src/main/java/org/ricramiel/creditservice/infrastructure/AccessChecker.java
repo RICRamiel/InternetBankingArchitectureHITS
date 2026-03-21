@@ -20,9 +20,15 @@ public class AccessChecker {
         return userId.equals(currentUserId);
     }
 
-    public boolean isOwner(UUID creditId) {
+    public boolean isCreditOwner(UUID creditId) {
         Credit credit = creditRepository.findById(creditId)
                 .orElseThrow(() -> new EntityNotFoundException("Credit not found with id: " + creditId));
+
+        return credit.getUserId().equals(userService.getUserId());
+    }
+
+    public boolean isAccountOwner(UUID cardAccountId){
+        Credit credit = creditRepository.findByCardAccount(cardAccountId);
 
         return credit.getUserId().equals(userService.getUserId());
     }

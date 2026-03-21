@@ -10,6 +10,7 @@ import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.service.CreditService;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,26 +32,31 @@ public class CreditController {
     private final CreditService creditService;
     private final ScheduledService scheduledService;
 
+    @PreAuthorize("hasRole('WORKER')")
     @PostMapping("/create")
     public ResponseEntity<CreditAnswerDTO> createCredit(@RequestBody CreditCreateModelDto creditDTO) {
         return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.createCredit(creditDTO)));
     }
 
+    @PreAuthorize("hasRole('WORKER')")
     @DeleteMapping("/{creditId}/delete")
     public void deleteCredit(@PathVariable("creditId") @Param("creditId") UUID creditId) {
         creditService.deleteCredit(creditId);
     }
 
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isSelf(#userId)")
     @GetMapping("/{userId}/get_by_user_id")
     public ResponseEntity<List<CreditAnswerDTO>> getByUserId(@PathVariable("userId") @Param("userId") UUID userId) {
         return ResponseEntity.ok(CreditMapper.toListDto(creditService.getByUserId(userId)));
     }
 
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
     @GetMapping("/{cardAccountId}/get_by_card_account")
     public ResponseEntity<CreditAnswerDTO> getByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId) {
         return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.getByCardAccountId(cardAccountId)));
     }
 
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
     @PostMapping("/{cardAccountId}/enrollment")
     public ResponseEntity<CreditAnswerDTO> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
                                                  @RequestParam("money") BigDecimal money) {
