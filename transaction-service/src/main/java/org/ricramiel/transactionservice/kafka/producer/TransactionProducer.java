@@ -36,22 +36,24 @@ public class TransactionProducer {
             for (OutboxEvent outboxEvent : listOfOutboxEventEntities) {
                 log.debug("Sending event to Kafka");
                 outboxEvent.setStatus(OutboxStatus.SEND);
-                outboxRepository.save(outboxEvent);
-                sendToKafka(outboxEvent);
-//                outboxRepository.deleteById(outboxEvent.getId());
+                if (sendToKafka(outboxEvent)) {
+                    outboxRepository.save(outboxEvent);
+                }
             }
         }
     }
 
-    private void sendToKafka(OutboxEvent outboxEventEntity) {
+    private boolean sendToKafka(OutboxEvent outboxEventEntity) {
         try {
             CompletableFuture<SendResult<String, EventTransactionDto>> sendResult = kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
                     objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class));
             SendResult<String, EventTransactionDto> result = sendResult.get();
             log.debug("Partition: {}", result.getRecordMetadata().partition());
+            return true;
         } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
             log.error("Error sending event to Kafka: {}", e.getMessage());
+            return false;
         }
     }
 }

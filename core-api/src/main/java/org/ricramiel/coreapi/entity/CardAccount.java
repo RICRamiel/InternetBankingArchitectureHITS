@@ -30,6 +30,7 @@ public class CardAccount {
     @NotNull
     private Boolean isMain;
     //Валюта счета
+    //Храним в upperCase
     //нужна проверка на перевод
     private String currency;
 

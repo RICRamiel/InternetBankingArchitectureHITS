@@ -56,6 +56,7 @@ public class CardAccountServiceImpl implements CardAccountService {
         cardAccountRepository.save(account);
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
+        transactionOperation.setCurrency(dto.getCurrency().toUpperCase());
         transactionOperation.setMoney(dto.getMoney());
         transactionOperation.setTransactionType(dto.getTransactionType());
         transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
@@ -84,13 +85,15 @@ public class CardAccountServiceImpl implements CardAccountService {
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
         if (account.getMoney().compareTo(dto.getMoney()) >= 0) {
-            log.debug("Withdraw transaction has been denied, due to not enough money");
             account.setMoney(account.getMoney().subtract(dto.getMoney()));
             cardAccountRepository.save(account);
-            transactionOperation.setTransactionStatus(TransactionStatus.DECLINED);
-        } else {
             transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+
+        } else {
+            log.debug("Withdraw transaction has been denied, due to not enough money");
+            transactionOperation.setTransactionStatus(TransactionStatus.DECLINED);
         }
+        transactionOperation.setCurrency(dto.getCurrency().toUpperCase());
         transactionOperation.setAccount(account);
         transactionOperation.setMoney(dto.getMoney());
         transactionOperation.setTransactionType(dto.getTransactionType());
@@ -123,7 +126,7 @@ public class CardAccountServiceImpl implements CardAccountService {
                     .money(BigDecimal.ZERO)
                     .deleted(false)
                     .name(dto.getName())
-                    .currency(dto.getCurrency())
+                    .currency(dto.getCurrency().toUpperCase())
                     .isMain((dto.getIsMain() != null) && dto.getIsMain())
                     .build();
             return cardAccountRepository.save(cardAccount);
@@ -155,7 +158,7 @@ public class CardAccountServiceImpl implements CardAccountService {
     /**
      * Функция чека на уникальность имени счёта среди других счетов пользователя
      */
-    private Boolean checkUnicNameByUser(UUID userId, String name) {
+    private boolean checkUnicNameByUser(UUID userId, String name) {
         return cardAccountRepository.countByUserIdAndName(userId, name) <= 0;
     }
 }
