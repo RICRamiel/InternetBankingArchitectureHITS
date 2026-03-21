@@ -34,10 +34,10 @@ public class TransactionListener {
             log.info("transaction listener received data with destination: {}", dto.getAction());
             if(Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)){
                 if(Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)){
-                    transactionsService.enroll(dto);
+                    transactionsService.enroll(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"));
                 }
                 if(Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)){
-                    transactionsService.withdraw(dto);
+                    transactionsService.withdraw(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"));
                 }
             }
 

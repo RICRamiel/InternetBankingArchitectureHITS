@@ -40,17 +40,25 @@ public class ExternalTransactionsService {
     @Value("${spring.kafka.topic.enroll_transaction}")
     private String ENROLL_TRANSACTION_TOPIC;
 
-    @Value("${application.master_account.id}")
-    private UUID masterAccountId;
 
     @SneakyThrows
     @Transactional
-    public void enroll(TransactionKafkaDto dto) {
-        TransactionOperation saved = internalTransactionsService.enroll(EnrollRequest.builder()
-                .cardAccountId(dto.getAccountId())
-                .sum(dto.getMoney())
-                .currency(dto.getCurrency())
-                .build(), dto.getAction());
+    public void enroll(TransactionKafkaDto dto, boolean fromMasterAccount) {
+        TransactionOperation saved;
+        if (fromMasterAccount) {
+            saved = internalTransactionsService.enrollFromMasterAccount(EnrollRequest.builder()
+                    .cardAccountId(dto.getAccountId())
+                    .sum(dto.getMoney())
+                    .currency(dto.getCurrency())
+                    .build(), dto.getAction()).getEnrollmentOperation();
+        }
+        else{
+            saved = internalTransactionsService.enroll(EnrollRequest.builder()
+                    .cardAccountId(dto.getAccountId())
+                    .sum(dto.getMoney())
+                    .currency(dto.getCurrency())
+                    .build(), dto.getAction());
+        }
 
         //form kafkaEvent
         dto.setId(saved.getId());
@@ -65,12 +73,22 @@ public class ExternalTransactionsService {
 
     @Transactional
     @SneakyThrows
-    public void withdraw(TransactionKafkaDto dto) {
-        TransactionOperation saved = internalTransactionsService.withdraw(WithdrawRequest.builder()
-                .cardAccountId(dto.getAccountId())
-                .sum(dto.getMoney())
-                .currency(dto.getCurrency())
-                .build(), dto.getAction());
+    public void withdraw(TransactionKafkaDto dto, boolean toMasterAccount) {
+        TransactionOperation saved;
+        if (toMasterAccount) {
+            saved = internalTransactionsService.withdrawToMasterAccount(WithdrawRequest.builder()
+                    .cardAccountId(dto.getAccountId())
+                    .sum(dto.getMoney())
+                    .currency(dto.getCurrency())
+                    .build(), dto.getAction()).getWithdrawalOperation();
+        }
+        else{
+            saved = internalTransactionsService.withdraw(WithdrawRequest.builder()
+                    .cardAccountId(dto.getAccountId())
+                    .sum(dto.getMoney())
+                    .currency(dto.getCurrency())
+                    .build(), dto.getAction());
+        }
 
         //form kafkaEvent
         dto.setId(saved.getId());

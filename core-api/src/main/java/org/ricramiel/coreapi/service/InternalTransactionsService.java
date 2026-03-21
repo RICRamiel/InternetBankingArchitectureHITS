@@ -1,6 +1,8 @@
 package org.ricramiel.coreapi.service;
 
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.dtos.EnrollDto;
+import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
@@ -12,16 +14,43 @@ import org.ricramiel.coreapi.model.TransferResult;
 import org.ricramiel.coreapi.model.WithdrawRequest;
 import org.ricramiel.coreapi.repository.CardAccountRepository;
 import org.ricramiel.coreapi.repository.TransactionOperationRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class InternalTransactionsService {
     private final CardAccountRepository cardAccountRepository;
     private final TransactionOperationRepository transactionOperationRepository;
+
+    @Value("${application.master_account.id}")
+    private UUID masterAccountId;
+
+    @Transactional
+    public TransferResult withdrawToMasterAccount(WithdrawRequest withdrawDto, String action) {
+        EnrollRequest enrollDto = EnrollRequest.builder()
+                .cardAccountId(masterAccountId)
+                .sum(withdrawDto.getSum())
+                .currency(withdrawDto.getCurrency())
+                .build();
+
+        return transfer(enrollDto, withdrawDto, action, "Перевод от: " + withdrawDto.getCardAccountId());
+    }
+
+    @Transactional
+    public TransferResult enrollFromMasterAccount(EnrollRequest enrollDto, String action) {
+        WithdrawRequest withdrawDto = WithdrawRequest.builder()
+                .cardAccountId(masterAccountId)
+                .sum(enrollDto.getSum())
+                .currency(enrollDto.getCurrency())
+                .build();
+
+        return transfer(enrollDto, withdrawDto, "Перевод на: " + enrollDto.getCardAccountId(), action);
+    }
 
     @Transactional
     public TransferResult transfer(TransferRequest model) {
@@ -46,6 +75,11 @@ public class InternalTransactionsService {
                 .currency(model.getCurrency())
                 .build();
 
+        return transfer(enrollDto, withdrawDto, withdrawAction,  enrollAction);
+    }
+
+    @Transactional
+    public TransferResult transfer(EnrollRequest enrollDto, WithdrawRequest withdrawDto,String withdrawAction, String enrollAction) {
         TransactionOperation savedWithdrawal = withdraw(withdrawDto, withdrawAction);
         if (savedWithdrawal.getTransactionStatus() == TransactionStatus.COMPLETE){
             TransactionOperation savedEnrollment = enroll(enrollDto, enrollAction);
