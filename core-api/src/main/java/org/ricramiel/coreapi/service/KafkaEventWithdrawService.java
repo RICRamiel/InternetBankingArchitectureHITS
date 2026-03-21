@@ -1,4 +1,4 @@
-package org.ricramiel.coreapi.service.implementation;
+package org.ricramiel.coreapi.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

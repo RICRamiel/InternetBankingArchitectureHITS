@@ -1,4 +1,4 @@
-package org.ricramiel.coreapi.service.implementation;
+package org.ricramiel.coreapi.service;
 
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.coreapi.client.CurrencyClient;

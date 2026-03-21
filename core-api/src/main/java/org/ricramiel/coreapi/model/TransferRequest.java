@@ -1,4 +1,4 @@
-package org.ricramiel.common.dtos;
+package org.ricramiel.coreapi.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,7 +10,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransferDto {
+public class TransferRequest {
     private UUID fromCardAccountId;
     private UUID toCardAccountId;
     private BigDecimal sum;

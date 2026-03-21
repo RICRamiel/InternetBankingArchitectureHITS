@@ -3,7 +3,7 @@ package org.ricramiel.coreapi.controller;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.coreapi.dto.CardAccountCreateDto;
 import org.ricramiel.coreapi.entity.CardAccount;
-import org.ricramiel.coreapi.service.CardAccountService;
+import org.ricramiel.coreapi.service.CardAccountServiceImpl;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.repository.query.Param;
@@ -22,7 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RequestMapping("/cardaccount")
 public class CardAccountController {
-    private final CardAccountService cardAccountService;
+    private final CardAccountServiceImpl cardAccountService;
 
     @GetMapping("/all/{userId}")
     public ResponseEntity<Page<CardAccount>> getUserCardAccounts(

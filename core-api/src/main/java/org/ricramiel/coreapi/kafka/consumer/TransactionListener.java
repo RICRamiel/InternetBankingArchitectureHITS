@@ -6,7 +6,8 @@ import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
-import org.ricramiel.coreapi.service.implementation.CardAccountServiceImpl;
+import org.ricramiel.coreapi.service.CardAccountServiceImpl;
+import org.ricramiel.coreapi.service.ExternalTransactionsService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -24,7 +25,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TransactionListener {
 
-    private final CardAccountServiceImpl cardAccountService;
+    private final ExternalTransactionsService transactionsService;
+    //пока не понимаю почему читает только enroll
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "transaction")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
         try {
@@ -32,10 +34,10 @@ public class TransactionListener {
             log.info("transaction listener received data with destination: {}", dto.getAction());
             if(Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)){
                 if(Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)){
-                    cardAccountService.enroll(dto, eventTransactionDto.getDestination());
+                    transactionsService.enroll(dto);
                 }
                 if(Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)){
-                    cardAccountService.withdraw(dto, eventTransactionDto.getDestination());
+                    transactionsService.withdraw(dto);
                 }
             }
 

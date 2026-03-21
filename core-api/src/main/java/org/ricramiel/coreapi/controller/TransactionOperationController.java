@@ -1,11 +1,11 @@
 package org.ricramiel.coreapi.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.ricramiel.common.dtos.EnrollDto;
-import org.ricramiel.common.dtos.TransferDto;
+import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.coreapi.entity.TransactionOperation;
-import org.ricramiel.coreapi.service.CardAccountService;
-import org.ricramiel.coreapi.service.TransactionOperationService;
+import org.ricramiel.coreapi.service.CardAccountServiceImpl;
+import org.ricramiel.coreapi.service.ExternalTransactionsService;
+import org.ricramiel.coreapi.service.TransactionOperationServiceImpl;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.repository.query.Param;
@@ -18,8 +18,8 @@ import java.util.UUID;
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
 public class TransactionOperationController {
-    private final TransactionOperationService transactionOperationService;
-    private final CardAccountService cardAccountService;
+    private final TransactionOperationServiceImpl transactionOperationService;
+    private final ExternalTransactionsService externalTransactionsService;
 
     @GetMapping("/{accountId}")
     public ResponseEntity<Page<TransactionOperation>> getTransactionOperations(
@@ -30,17 +30,7 @@ public class TransactionOperationController {
     }
 
     @PostMapping("/transfer")
-    public void transferMoney(@RequestBody TransferDto dto) {
-        cardAccountService.transfer(dto);
+    public void transferMoney(@RequestBody TransferRequest dto) {
+        externalTransactionsService.transfer(dto);
     }
-//
-//    @PostMapping("/enroll")
-//    public void enrollMoney(@RequestBody EnrollDto enrollDto) {
-//        cardAccountService.enroll(enrollDto);
-//    }
-//
-//    @PostMapping("/withdraw")
-//    public void withdrawMoney(@RequestBody WithdrawDto withdrawDto) {
-//        cardAccountService.withdraw(withdrawDto);
-//    }
 }
