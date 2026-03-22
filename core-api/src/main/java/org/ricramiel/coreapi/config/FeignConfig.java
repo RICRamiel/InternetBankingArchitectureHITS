@@ -1,26 +1,35 @@
 package org.ricramiel.coreapi.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.Retryer;
-import feign.Util;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import feign.codec.Decoder;
+import feign.codec.Encoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FeignConfig {
     @Bean
-    public Decoder feingDecoder() {
-        return ((response, type) -> {
-            String jasc = Util.toString(response.body().asReader(StandardCharsets.UTF_8));
-            String json = jasc.replaceAll("^[^{]*", "").replaceAll("[^}]*$", "");
-            if (type instanceof Class) {
-                return new ObjectMapper().readValue(json, (Class<?>) type);
-            }
-            return new ObjectMapper().readValue(json, new ObjectMapper().constructType(type));
-        });
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
+
+    @Bean
+    public Decoder feignDecoder(ObjectMapper objectMapper) {
+        return new JacksonDecoder(objectMapper);
+    }
+
+    @Bean
+    public Encoder feignEncoder(ObjectMapper objectMapper) {
+        return new JacksonEncoder(objectMapper);
     }
 
     @Bean
