@@ -35,7 +35,7 @@ public class CreditController {
     @PreAuthorize("hasRole('WORKER')")
     @PostMapping("/create")
     public ResponseEntity<CreditAnswerDTO> createCredit(@RequestBody CreditCreateModelDto creditDTO) {
-        return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.createCredit(creditDTO)));
+        return ResponseEntity.ok(CreditMapper.toAnswerDtoTemp(creditService.createCredit(creditDTO)));
     }
 
     @PreAuthorize("hasRole('WORKER')")
