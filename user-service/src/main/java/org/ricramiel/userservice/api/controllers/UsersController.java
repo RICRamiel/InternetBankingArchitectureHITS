@@ -61,6 +61,6 @@ public class UsersController {
     public UserDto getUserByEmail(
             @PathVariable("email") @Param("email") String email
     ) {
-        userMapper.toDto(usersService.getUserByEmail(email));
+        return userMapper.toDto(usersService.getUserByEmail(email));
     }
 }
