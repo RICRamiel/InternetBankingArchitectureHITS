@@ -78,7 +78,7 @@ public class KafkaMessageListener {
                         .lastInterestUpdate(LocalDateTime.now())
                         .currency(creditTemp.getCurrency())
                         .cardAccount(creditTemp.getCardAccount())
-                        .currentDebtSum(creditTemp.getCurrentDebtSum())
+                        .currentDebtSum(creditTemp.getInitialDebt())
                         .userId(creditTemp.getUserId())
                         .build();
 
