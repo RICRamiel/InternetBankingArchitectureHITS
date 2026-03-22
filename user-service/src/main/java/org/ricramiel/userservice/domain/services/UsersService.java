@@ -16,4 +16,6 @@ public interface UsersService {
     User deleteUserById(@NonNull UUID id);
 
     List<User> getAllUsers();
+
+    User getUserByEmail(String email);
 }

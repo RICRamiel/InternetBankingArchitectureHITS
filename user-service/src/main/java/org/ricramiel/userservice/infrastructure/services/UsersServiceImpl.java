@@ -66,4 +66,13 @@ public class UsersServiceImpl implements UsersService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
+    @Override
+    public User getUserByEmail(String email) {
+        User user = userRepository.findAllByEmail(email).getFirst();
+        if (user == null) {
+            throw new EntityNotFoundException("User not found with email " + email);
+        }
+        return user;
+    }
 }
