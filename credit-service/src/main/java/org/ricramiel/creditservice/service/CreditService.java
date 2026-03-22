@@ -3,6 +3,7 @@ package org.ricramiel.creditservice.service;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.dto.CreditDTO;
 import org.ricramiel.creditservice.model.Credit;
+import org.ricramiel.creditservice.model.CreditTemp;
 import org.springframework.data.domain.Page;
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,7 +13,7 @@ public interface CreditService {
 
 
 
-    Credit createCredit(CreditCreateModelDto creditDTO);
+    CreditTemp createCredit(CreditCreateModelDto creditDTO);
     void deleteCredit(UUID creditId);
     List<Credit> getByUserId(UUID userId);
     Page<Credit> findAllPageable(int size, int offset);

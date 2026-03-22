@@ -11,14 +11,8 @@ import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.CreditAlreadyExistsException;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
-import org.ricramiel.creditservice.model.Credit;
-import org.ricramiel.creditservice.model.CreditRating;
-import org.ricramiel.creditservice.model.CreditRule;
-import org.ricramiel.creditservice.model.OutboxEvent;
-import org.ricramiel.creditservice.repository.CreditRatingRepository;
-import org.ricramiel.creditservice.repository.CreditRepository;
-import org.ricramiel.creditservice.repository.CreditRuleRepository;
-import org.ricramiel.creditservice.repository.OutboxRepository;
+import org.ricramiel.creditservice.model.*;
+import org.ricramiel.creditservice.repository.*;
 import org.ricramiel.creditservice.service.CreditService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -39,7 +33,7 @@ public class CreditServiceImpl implements CreditService {
     private final CreditRuleRepository creditRuleRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
-    private final CreditRatingRepository creditRatingRepository;
+    private final CreditTempRepository creditTempRepository;
 
     @Value("${app.kafka.topics.enroll}")
     private String ENROLL_TRANSACTION_TOPIC;
@@ -49,7 +43,7 @@ public class CreditServiceImpl implements CreditService {
 
     @Override
     @Transactional
-    public Credit createCredit(CreditCreateModelDto creditDTO) {
+    public CreditTemp createCredit(CreditCreateModelDto creditDTO) {
         CreditRule rule = creditRuleRepository.findById(creditDTO.getCreditRuleId())
                 .orElseThrow(() -> new NotFoundException("Credit rule not found"));
 
@@ -57,7 +51,7 @@ public class CreditServiceImpl implements CreditService {
             throw new CreditAlreadyExistsException("Credit on this card account already exists");
         }
 
-        Credit credit = Credit.builder()
+        CreditTemp creditTemp = CreditTemp.builder()
                 .creditRule(rule)
                 .initialDebt(creditDTO.getTotalDebt())
                 .currentDebtSum(BigDecimal.ZERO)
@@ -67,32 +61,26 @@ public class CreditServiceImpl implements CreditService {
                 .userId(creditDTO.getUserId())
                 .lastInterestUpdate(LocalDateTime.now())
                 .build();
-        eventCreateCredit(credit);
 
-        CreditRating creditRating = new CreditRating();
-
-        creditRating.setRating(BigDecimal.valueOf(100));
-        creditRating.setUserId(credit.getUserId());
-        creditRatingRepository.save(creditRating);
-
-        return creditRepository.save(credit);
+        eventCreateCredit(creditTempRepository.save(creditTemp));
+        return creditTemp;
     }
 
     @SneakyThrows
-    private void eventCreateCredit(Credit credit){
+    private void eventCreateCredit(CreditTemp credit){
 
         TransactionKafkaDto transactionKafkaDto = new TransactionKafkaDto(
-                null,
+                credit.getId(),
                 credit.getCardAccount(),
                 LocalDateTime.now(),
                 TransactionType.ENROLLMENT,
                 TransactionStatus.IN_PROGRESS,
-                "ENROLL",
+                "Создание кредита",
                 credit.getInitialDebt(),
                 credit.getCurrency());
 
         EventTransactionDto eventTransactionDto = new EventTransactionDto();
-        eventTransactionDto.setDestination(TYPE);
+        eventTransactionDto.setDestination("credit");
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
         eventTransactionDto.setCreationDate(LocalDateTime.now());

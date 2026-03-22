@@ -35,7 +35,7 @@ public class CreditController {
     @PreAuthorize("hasRole('WORKER')")
     @PostMapping("/create")
     public ResponseEntity<CreditAnswerDTO> createCredit(@RequestBody CreditCreateModelDto creditDTO) {
-        return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.createCredit(creditDTO)));
+        return ResponseEntity.ok(CreditMapper.toAnswerDtoTemp(creditService.createCredit(creditDTO)));
     }
 
     @PreAuthorize("hasRole('WORKER')")
@@ -59,9 +59,9 @@ public class CreditController {
     @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
     @PostMapping("/{cardAccountId}/enrollment")
     public ResponseEntity<CreditAnswerDTO> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
-                                                 @RequestParam("money") BigDecimal money) {
+                                                          @RequestParam("money") BigDecimal money) {
         Credit credit = creditService.getByCardAccountId(cardAccountId);
-        if(!credit.getCurrentDebtSum().equals(BigDecimal.ZERO)){
+        if (credit.getCurrentDebtSum().compareTo(BigDecimal.ZERO) > 0) {
             scheduledService.withdraw(credit.getCardAccount(), money);
         }
         return ResponseEntity.ok(CreditMapper.toAnswerDto(credit));
