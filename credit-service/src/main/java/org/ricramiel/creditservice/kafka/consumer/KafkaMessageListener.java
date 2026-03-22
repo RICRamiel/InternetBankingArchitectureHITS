@@ -40,28 +40,34 @@ public class KafkaMessageListener {
     private final CreditRatingRepository creditRatingRepository;
 
     @Transactional
-    @KafkaListener(topics = {"${app.kafka.topics.withdraw}","TransactionEnroll_credit"}, groupId = "withdraw")
+    @KafkaListener(topics = {"${app.kafka.topics.withdraw}", "TransactionEnroll_credit"}, groupId = "withdraw")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
         try {
 
             TransactionKafkaDto transactionKafkaDto = eventTransactionDto.getData();
 
-            PaymentHistoryRecord paymentHistoryRecord = paymentHistoryRecordRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
-            paymentHistoryRecord.setTransactionStatus(transactionKafkaDto.getTransactionStatus());
-            paymentHistoryRecordRepository.save(paymentHistoryRecord);
-
-            if (!Objects.equals(eventTransactionDto.getDestination(), type)){
+            if (!Objects.equals(eventTransactionDto.getDestination(), type)) {
                 log.error("Received unexpected withdraw event with destination {}", eventTransactionDto.getDestination());
                 acknowledgment.acknowledge();
                 return;
             }
 
-            if(transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)){
+            if (transactionKafkaDto.getAction().equals("Погашение кредита")) {
+
+                PaymentHistoryRecord paymentHistoryRecord = paymentHistoryRecordRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
+                paymentHistoryRecord.setTransactionStatus(transactionKafkaDto.getTransactionStatus());
+                paymentHistoryRecordRepository.save(paymentHistoryRecord);
+
+            }
+
+            if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
+                    && transactionKafkaDto.getAction().equals("Погашение кредита")) {
                 creditService.makeEnrollment(transactionKafkaDto.getAccountId(), transactionKafkaDto.getMoney());
             }
 
-            if(transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-            && transactionKafkaDto.getAction().equals("Создание кредита")){
+
+            if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
+                    && transactionKafkaDto.getAction().equals("Создание кредита")) {
 
                 CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
 
