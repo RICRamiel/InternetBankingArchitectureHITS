@@ -13,7 +13,7 @@ public class CurrencyCacheService {
 
     private final CurrencyClient currencyClient;
     //получение списка валют и его кэширование
-    @Cacheable(value = "currencies", unless = "#result == null")
+    //@Cacheable(value = "currencies", unless = "#result == null")
     public CurrencyClientDto getCurrencyCourses() {
         return currencyClient.getCurrencies();
     }

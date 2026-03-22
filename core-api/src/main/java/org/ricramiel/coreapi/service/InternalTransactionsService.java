@@ -122,7 +122,11 @@ public class InternalTransactionsService {
             TransactionOperation savedEnrollment = enroll(enrollDto, enrollAction);
             return new TransferResult(savedWithdrawal, savedEnrollment);
         }
-        return new TransferResult(savedWithdrawal, null);
+
+        CardAccount account = cardAccountRepository.findById(enrollDto.getCardAccountId())
+                .orElseThrow(() -> new NotFoundException("Account not found"));
+        TransactionOperation enrollOperation = createAndSaveEnrollOperation(enrollDto, enrollAction, account, TransactionStatus.DECLINED);
+        return new TransferResult(savedWithdrawal, enrollOperation);
     }
 
     public TransactionOperation enroll(EnrollRequest request, String action) {
@@ -132,17 +136,33 @@ public class InternalTransactionsService {
         account.setMoney(account.getMoney().add(request.getSum()));
         cardAccountRepository.save(account);
 
+        TransactionOperation res = createAndSaveEnrollOperation(request, action, account, TransactionStatus.COMPLETE);
+        pushUpdate(res);
+        return res;
+    }
+
+    private TransactionOperation createAndSaveEnrollOperation(EnrollRequest request, String action, CardAccount account, TransactionStatus status){
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
         transactionOperation.setCurrency(request.getCurrency().toUpperCase());
         transactionOperation.setMoney(request.getSum());
         transactionOperation.setTransactionType(TransactionType.ENROLLMENT);
-        transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+        transactionOperation.setTransactionStatus(status);
         transactionOperation.setAction(action);
         transactionOperation.setDateTime(LocalDateTime.now());
-        TransactionOperation res = transactionOperationRepository.save(transactionOperation);
-        pushUpdate(res);
-        return res;
+        return transactionOperationRepository.save(transactionOperation);
+    }
+
+    private TransactionOperation createAndSaveWithdrawOperation(WithdrawRequest request, String action, CardAccount account, TransactionStatus status){
+        TransactionOperation transactionOperation = new TransactionOperation();
+        transactionOperation.setAccount(account);
+        transactionOperation.setCurrency(request.getCurrency().toUpperCase());
+        transactionOperation.setMoney(request.getSum());
+        transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
+        transactionOperation.setTransactionStatus(status);
+        transactionOperation.setAction(action);
+        transactionOperation.setDateTime(LocalDateTime.now());
+        return transactionOperationRepository.save(transactionOperation);
     }
 
     public TransactionOperation withdraw(WithdrawRequest request, String action) {
@@ -157,13 +177,7 @@ public class InternalTransactionsService {
         } else {
             transactionOperation.setTransactionStatus(TransactionStatus.DECLINED);
         }
-        transactionOperation.setAccount(account);
-        transactionOperation.setCurrency(request.getCurrency().toUpperCase());
-        transactionOperation.setMoney(request.getSum());
-        transactionOperation.setTransactionType(TransactionType.WITHDRAWAL);
-        transactionOperation.setAction(action);
-        transactionOperation.setDateTime(LocalDateTime.now());
-        TransactionOperation res = transactionOperationRepository.save(transactionOperation);
+        TransactionOperation res = createAndSaveWithdrawOperation(request, action, account, TransactionStatus.COMPLETE);
         pushUpdate(res);
         return res;
     }
