@@ -57,7 +57,7 @@ public class UsersController {
         usersService.editUserById(id, userEditModelMapper.toDomain(model));
     }
 
-    @GetMapping("/by-email/{emailId}")
+    @GetMapping("/by-email/{email}")
     public UserDto getUserByEmail(
             @PathVariable("email") @Param("email") String email
     ) {
