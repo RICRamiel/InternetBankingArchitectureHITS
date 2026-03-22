@@ -83,7 +83,7 @@ public class ScheduledService {
         while (!credits.isEmpty()) {
             credits.forEach(credit -> {
 
-                if(!credit.getInterestDebtSum().equals(BigDecimal.ZERO)){
+                if (credit.getInterestDebtSum().compareTo(BigDecimal.ZERO) > 0) {
                     withdraw(credit.getCardAccount(), credit.getInterestDebtSum());
                 }
             });
@@ -119,7 +119,7 @@ public class ScheduledService {
 
     @SneakyThrows
     @Transactional
-    public void sendToKafka(TransactionKafkaDto transactionKafkaDto){
+    public void sendToKafka(TransactionKafkaDto transactionKafkaDto) {
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(TRANSACTION_WITHDRAW);
         EventTransactionDto eventTransactionDto = new EventTransactionDto();
