@@ -74,6 +74,8 @@ services:
       - USER_SERVICE_URI=http://user-service:8000
       - CORE_API_URI=http://core-api:8001
       - CREDIT_SERVICE_URI=http://credit-service:8002
+      - TRANSACTION_SERVICE_URI=http://localhost:8005
+      - PREFERENCES_SERVICE_URI=http://localhost:8006
       - TOKEN_VALIDATION_URL=http://user-service:8000/api/user-service/auth/validate
       - CLIENT_URL=http://client.thallassianangel.su
       - CLIENT_SECURE_URL=https://client.thallassianangel.su
@@ -104,6 +106,7 @@ services:
       - KAFKA_DESTINATION=credit
       - TYPE_WITHDRAW=withdraw
       - TYPE_ENROLL=enroll
+      - MASTER_CARD_ACCOUNT=18f35126-66c0-4997-9922-39c70e924634
       - KAFKA_ENROLL_TOPIC=TransactionEnroll_credit
     networks:
       - proxy-network
@@ -137,7 +140,7 @@ services:
     environment:
       - SERVER_PORT=8002
       - TRANSACTION_TOPIC=TransactionsTopic
-      - TRANSACTION_ENROLL=TransactionEnroll
+      - TRANSACTION_ENROLL=TransactionEnroll_credit
       - TRANSACTION_WITHDRAW=TransactionWithdraw
       - KAFKA_SERVER_IP=kafka:29092
       - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
@@ -146,6 +149,40 @@ services:
       - CORE_API_URL=core-api:8001/api/core-api
       - TYPE_ENROLL=enroll
       - OUTBOX_TIME=5000
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  preferences-service:
+    build:
+      context: .
+      dockerfile: preferences-service/Dockerfile
+    container_name: bank-preferences-service
+    expose:
+      - "8006"
+    environment:
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/preferencesservice
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: bank-transaction-service
+    expose:
+      - "8005"
+    environment:
+      - TRANSACTION_TOPIC=TransactionsTopic
+      - TRANSACTION_ENROLL=TransactionEnroll
+      - TRANSACTION_WITHDRAW=TransactionWithdraw
+      - KAFKA_SERVER_IP=127.0.0.1:29092
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/transactionservice
     networks:
       - proxy-network
     restart: unless-stopped

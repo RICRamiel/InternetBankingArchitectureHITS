@@ -53,5 +53,6 @@
         <module>common</module>
         <module>api-gateway</module>
         <module>preferences-service</module>
+        <module>transaction-service</module>
     </modules>
 </project>
