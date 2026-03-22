@@ -46,12 +46,12 @@ public class TransactionService {
     public void withdraw(WithdrawDto withdrawDto) {
         log.info("withdraw: {}", withdrawDto);
         String dest = (!withdrawDto.getDestination().isEmpty()) ? withdrawDto.getDestination() : "client";
-        TransactionKafkaDto transactionKafkaDto = TransactionMapper.toTransactionKafkaDto(withdrawDto, dest);
+        TransactionKafkaDto transactionKafkaDto = TransactionMapper.toTransactionKafkaDto(withdrawDto, null);
 
         OperationHistory operationHistory = TransactionMapper.fromTransactionKafkaDto(transactionKafkaDto);
         operationHistoryRepository.save(operationHistory);
 
-        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), TYPE_WITHDRAW);
+        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), "client");
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
@@ -62,12 +62,12 @@ public class TransactionService {
     public void enroll(EnrollDto enrollDto) {
         log.info("enroll: {}", enrollDto);
         String dest = (!enrollDto.getDestination().isEmpty()) ? enrollDto.getDestination() : "client";
-        TransactionKafkaDto transactionKafkaDto = TransactionMapper.toTransactionKafkaDto(enrollDto, dest);
+        TransactionKafkaDto transactionKafkaDto = TransactionMapper.toTransactionKafkaDto(enrollDto, null);
 
         OperationHistory operationHistory = TransactionMapper.fromTransactionKafkaDto(transactionKafkaDto);
         operationHistoryRepository.save(operationHistory);
 
-        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), TYPE_ENROLL);
+        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), "client");
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));

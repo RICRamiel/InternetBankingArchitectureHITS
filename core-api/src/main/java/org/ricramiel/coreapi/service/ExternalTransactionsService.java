@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.exceptions.status_code_exceptions.BadRequestException;
@@ -14,9 +15,7 @@ import org.ricramiel.coreapi.model.TransferCurrencyRequest;
 import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.coreapi.model.TransferResult;
 import org.ricramiel.coreapi.model.WithdrawRequest;
-import org.ricramiel.coreapi.repository.CardAccountRepository;
 import org.ricramiel.coreapi.repository.OutboxRepository;
-import org.ricramiel.coreapi.repository.TransactionOperationRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +43,7 @@ public class ExternalTransactionsService {
 
     @SneakyThrows
     @Transactional
-    public void enroll(TransactionKafkaDto dto, boolean fromMasterAccount) {
+    public void enroll(TransactionKafkaDto dto, boolean fromMasterAccount, String desti) {
         TransactionOperation saved;
         if (fromMasterAccount) {
             saved = internalTransactionsService.enrollFromMasterAccount(EnrollRequest.builder()
@@ -65,7 +64,7 @@ public class ExternalTransactionsService {
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
-        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        String dest = (!StringUtils.isEmpty(desti)) ? desti : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
@@ -74,7 +73,7 @@ public class ExternalTransactionsService {
 
     @Transactional
     @SneakyThrows
-    public void withdraw(TransactionKafkaDto dto, boolean toMasterAccount) {
+    public void withdraw(TransactionKafkaDto dto, boolean toMasterAccount, String desti) {
         TransactionOperation saved;
         if (toMasterAccount) {
             saved = internalTransactionsService.withdrawToMasterAccount(WithdrawRequest.builder()
@@ -95,7 +94,7 @@ public class ExternalTransactionsService {
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
-        String dest = (!saved.getAction().isEmpty()) ? dto.getAction() : "client";
+        String dest = (!StringUtils.isEmpty(desti)) ? desti : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));

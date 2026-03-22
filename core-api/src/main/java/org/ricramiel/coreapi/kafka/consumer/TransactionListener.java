@@ -6,7 +6,6 @@ import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
-import org.ricramiel.coreapi.service.CardAccountServiceImpl;
 import org.ricramiel.coreapi.service.ExternalTransactionsService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -14,7 +13,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
-
 
 
 /**
@@ -26,18 +24,21 @@ import java.util.Objects;
 public class TransactionListener {
 
     private final ExternalTransactionsService transactionsService;
+
     //пока не понимаю почему читает только enroll
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "transaction")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
         try {
             TransactionKafkaDto dto = eventTransactionDto.getData();
             log.info("transaction listener received data with destination: {}", dto.getAction());
-            if(Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)){
-                if(Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)){
-                    transactionsService.enroll(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"));
+            if (Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)) {
+                if (Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)) {
+                    log.info(String.valueOf(!Objects.equals(eventTransactionDto.getDestination(), "client")));
+                    log.info(eventTransactionDto.toString());
+                    transactionsService.enroll(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
                 }
-                if(Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)){
-                    transactionsService.withdraw(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"));
+                if (Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)) {
+                    transactionsService.withdraw(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
                 }
             }
 

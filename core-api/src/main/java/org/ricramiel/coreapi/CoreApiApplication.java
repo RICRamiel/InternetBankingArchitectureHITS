@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 )
 @EnableScheduling
 @EnableKafka
-@EnableCaching
+//@EnableCaching
 @EnableFeignClients
 public class CoreApiApplication {
     public static void main(String[] args) {

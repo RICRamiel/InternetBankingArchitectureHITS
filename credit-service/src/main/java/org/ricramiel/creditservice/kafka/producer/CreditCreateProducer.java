@@ -1,6 +1,10 @@
 package org.ricramiel.creditservice.kafka.producer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.core.util.Json;
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.creditservice.model.OutboxEvent;
 import org.ricramiel.creditservice.repository.OutboxRepository;
@@ -20,8 +24,9 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class CreditCreateProducer {
     private static final Logger LOG = LoggerFactory.getLogger(CreditCreateProducer.class);
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, EventTransactionDto> kafkaTemplate;
     private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
 
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
@@ -45,10 +50,10 @@ public class CreditCreateProducer {
             var sendResult =
             kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
-                   outboxEventEntity.getPayload());
-            SendResult<String, Object> result = sendResult.get();
+                    objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class));
+            SendResult<String, EventTransactionDto> result = sendResult.get();
             LOG.info("Partition: {}", result.getRecordMetadata().partition());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
             LOG.error("Error sending event to Kafka: {}", e.getMessage());
         }
     }

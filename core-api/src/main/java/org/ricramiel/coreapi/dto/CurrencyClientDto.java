@@ -4,20 +4,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class CurrencyClientDto {
     @JsonProperty("Date")
-    LocalDateTime date;
+    OffsetDateTime date;
     @JsonProperty("PreviousDate")
-    LocalDateTime prevDate;
+    OffsetDateTime prevDate;
     @JsonProperty("PreviousURL")
     String prevURL;
     @JsonProperty("Timestamp")
-    LocalDateTime timestamp;
+    OffsetDateTime timestamp;
     @JsonProperty("Valute")
     Map<String, CurrencyDto> valuteList;
 }

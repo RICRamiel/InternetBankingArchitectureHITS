@@ -94,11 +94,6 @@ public class ScheduledService {
 
     @Transactional
     public void withdraw(UUID cardAccountId, BigDecimal money) {
-        WithdrawDto withdrawDto = new WithdrawDto();
-        withdrawDto.setCardAccountId(cardAccountId);
-        withdrawDto.setSum(money);
-        withdrawDto.setDestination("credit");
-
         PaymentHistoryRecord paymentHistoryRecord = PaymentHistoryRecord.builder()
                 .sum(money)
                 .date(LocalDateTime.now())
@@ -115,7 +110,7 @@ public class ScheduledService {
                 paymentHistoryRecord.getDate(),
                 TransactionType.WITHDRAWAL,
                 paymentHistoryRecord.getTransactionStatus(),
-                "WITHDRAW",
+                "Погашение кредита",
                 money,
                 paymentHistoryRecord.getCurrency());
 
@@ -131,7 +126,7 @@ public class ScheduledService {
         eventTransactionDto.setCreationDate(LocalDateTime.now());
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
-        eventTransactionDto.setDestination(TYPE);
+        eventTransactionDto.setDestination("credit");
         outboxEvent.setPayload(objectMapper.writeValueAsString(eventTransactionDto));
         outboxRepository.save(outboxEvent);
     }

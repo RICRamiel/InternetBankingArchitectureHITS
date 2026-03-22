@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/preferences")
+@RequestMapping("/preferences")
 @RequiredArgsConstructor
 public class PreferencesController {
 

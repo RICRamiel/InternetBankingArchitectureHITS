@@ -1,5 +1,6 @@
 package org.ricramiel.coreapi.controller;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.coreapi.dto.CurrencyClientDto;
 import org.ricramiel.coreapi.dto.CurrencyDto;
@@ -23,7 +24,7 @@ public class CurrencyController {
     }
 
     @GetMapping("/{charcode}")
-    public CurrencyDto getCurrencyByCharCode(@PathVariable String charcode) {
+    public CurrencyDto getCurrencyByCharCode(@Parameter @PathVariable("charcode") String charcode) {
         return currencyService.getCurrencyCoursesByCharCode(charcode);
     }
 }
