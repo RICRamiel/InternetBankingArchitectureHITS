@@ -80,7 +80,7 @@ public class CreditServiceImpl implements CreditService {
                 credit.getCurrency());
 
         EventTransactionDto eventTransactionDto = new EventTransactionDto();
-        eventTransactionDto.setDestination(TYPE);
+        eventTransactionDto.setDestination("credit");
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
         eventTransactionDto.setCreationDate(LocalDateTime.now());

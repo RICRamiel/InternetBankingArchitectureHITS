@@ -40,7 +40,7 @@ public class KafkaMessageListener {
     private final CreditRatingRepository creditRatingRepository;
 
     @Transactional
-    @KafkaListener(topics = "${app.kafka.topics.withdraw}", groupId = "withdraw")
+    @KafkaListener(topics = {"${app.kafka.topics.withdraw}","TransactionEnroll_credit"}, groupId = "withdraw")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
         try {
 
