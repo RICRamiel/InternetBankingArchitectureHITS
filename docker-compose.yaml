@@ -74,8 +74,8 @@ services:
       - USER_SERVICE_URI=http://user-service:8000
       - CORE_API_URI=http://core-api:8001
       - CREDIT_SERVICE_URI=http://credit-service:8002
-      - TRANSACTION_SERVICE_URI=http://localhost:8005
-      - PREFERENCES_SERVICE_URI=http://localhost:8006
+      - TRANSACTION_SERVICE_URI=http://transaction-service:8005
+      - PREFERENCES_SERVICE_URI=http://preferences-service:8006
       - TOKEN_VALIDATION_URL=http://user-service:8000/api/user-service/auth/validate
       - CLIENT_URL=http://client.thallassianangel.su
       - CLIENT_SECURE_URL=https://client.thallassianangel.su

@@ -7,7 +7,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @EnableKafka
-@SpringBootApplication
+@SpringBootApplication(
+        scanBasePackages = {
+                "org.ricramiel.common", "org.ricramiel.transactionservice"
+        }
+)
 public class TransactionServiceApplication {
 
     public static void main(String[] args) {

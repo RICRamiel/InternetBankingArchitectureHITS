@@ -54,5 +54,6 @@
         <module>api-gateway</module>
         <module>preferences-service</module>
         <module>transaction-service</module>
+        <module>notification-service</module>
     </modules>
 </project>
