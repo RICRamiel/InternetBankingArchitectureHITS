@@ -93,7 +93,7 @@ public class ExternalTransactionsService {
         //form kafkaEvent
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
-        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), TYPE_WITHDRAW);
+        EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), desti);
         String dest = (!StringUtils.isEmpty(desti)) ? desti : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);

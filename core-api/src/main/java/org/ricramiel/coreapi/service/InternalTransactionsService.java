@@ -1,17 +1,15 @@
 package org.ricramiel.coreapi.service;
 
 import lombok.RequiredArgsConstructor;
-import org.ricramiel.common.dtos.EnrollDto;
-import org.ricramiel.common.dtos.WithdrawDto;
-import org.ricramiel.coreapi.dto.CurrencyConvertRequestDto;
-import org.ricramiel.coreapi.model.TransferCurrencyRequest;
-import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
+import org.ricramiel.coreapi.dto.CurrencyConvertRequestDto;
 import org.ricramiel.coreapi.entity.CardAccount;
 import org.ricramiel.coreapi.entity.TransactionOperation;
 import org.ricramiel.coreapi.model.EnrollRequest;
+import org.ricramiel.coreapi.model.TransferCurrencyRequest;
+import org.ricramiel.coreapi.model.TransferRequest;
 import org.ricramiel.coreapi.model.TransferResult;
 import org.ricramiel.coreapi.model.WithdrawRequest;
 import org.ricramiel.coreapi.repository.CardAccountRepository;
@@ -90,7 +88,7 @@ public class InternalTransactionsService {
                 .currency(model.getCurrency())
                 .build();
 
-        return transfer(enrollDto, withdrawDto, withdrawAction,  enrollAction);
+        return transfer(enrollDto, withdrawDto, withdrawAction, enrollAction);
     }
 
     @Transactional
@@ -103,7 +101,7 @@ public class InternalTransactionsService {
 
         //Блок на конвертацию
         BigDecimal sumTo = currencyService.convertCurrency(
-                new CurrencyConvertRequestDto(model.getCurrencyFrom(),model.getCurrencyTo(), model.getSumFrom())
+                new CurrencyConvertRequestDto(model.getCurrencyFrom(), model.getCurrencyTo(), model.getSumFrom())
         ).getAmountTo();
         //
         EnrollRequest enrollDto = EnrollRequest.builder()
@@ -112,13 +110,13 @@ public class InternalTransactionsService {
                 .currency(model.getCurrencyTo())
                 .build();
 
-        return transfer(enrollDto, withdrawDto, withdrawAction,  enrollAction);
+        return transfer(enrollDto, withdrawDto, withdrawAction, enrollAction);
     }
 
     @Transactional
-    public TransferResult transfer(EnrollRequest enrollDto, WithdrawRequest withdrawDto,String withdrawAction, String enrollAction) {
+    public TransferResult transfer(EnrollRequest enrollDto, WithdrawRequest withdrawDto, String withdrawAction, String enrollAction) {
         TransactionOperation savedWithdrawal = withdraw(withdrawDto, withdrawAction);
-        if (savedWithdrawal.getTransactionStatus() == TransactionStatus.COMPLETE){
+        if (savedWithdrawal.getTransactionStatus() == TransactionStatus.COMPLETE) {
             TransactionOperation savedEnrollment = enroll(enrollDto, enrollAction);
             return new TransferResult(savedWithdrawal, savedEnrollment);
         }
@@ -141,7 +139,7 @@ public class InternalTransactionsService {
         return res;
     }
 
-    private TransactionOperation createAndSaveEnrollOperation(EnrollRequest request, String action, CardAccount account, TransactionStatus status){
+    private TransactionOperation createAndSaveEnrollOperation(EnrollRequest request, String action, CardAccount account, TransactionStatus status) {
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
         transactionOperation.setCurrency(request.getCurrency().toUpperCase());
@@ -153,7 +151,7 @@ public class InternalTransactionsService {
         return transactionOperationRepository.save(transactionOperation);
     }
 
-    private TransactionOperation createAndSaveWithdrawOperation(WithdrawRequest request, String action, CardAccount account, TransactionStatus status){
+    private TransactionOperation createAndSaveWithdrawOperation(WithdrawRequest request, String action, CardAccount account, TransactionStatus status) {
         TransactionOperation transactionOperation = new TransactionOperation();
         transactionOperation.setAccount(account);
         transactionOperation.setCurrency(request.getCurrency().toUpperCase());
@@ -169,20 +167,19 @@ public class InternalTransactionsService {
         CardAccount account = cardAccountRepository.findById(request.getCardAccountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
-        TransactionOperation transactionOperation = new TransactionOperation();
+        TransactionOperation transactionOperation;
         if (account.getMoney().compareTo(request.getSum()) >= 0) {
             account.setMoney(account.getMoney().subtract(request.getSum()));
             cardAccountRepository.save(account);
-            transactionOperation.setTransactionStatus(TransactionStatus.COMPLETE);
+            transactionOperation = createAndSaveWithdrawOperation(request, action, account, TransactionStatus.COMPLETE);
         } else {
-            transactionOperation.setTransactionStatus(TransactionStatus.DECLINED);
+            transactionOperation = createAndSaveWithdrawOperation(request, action, account, TransactionStatus.DECLINED);
         }
-        TransactionOperation res = createAndSaveWithdrawOperation(request, action, account, TransactionStatus.COMPLETE);
-        pushUpdate(res);
-        return res;
+        pushUpdate(transactionOperation);
+        return transactionOperation;
     }
 
-    public void pushUpdate(TransactionOperation transactionOperation){
+    public void pushUpdate(TransactionOperation transactionOperation) {
         webSocketPushService.pushToAccount(transactionOperation.getAccount().getId(), transactionOperation);
     }
 }

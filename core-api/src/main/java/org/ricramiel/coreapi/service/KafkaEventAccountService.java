@@ -1,0 +1,61 @@
+package org.ricramiel.coreapi.service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.dtos.EventAccountCreate;
+import org.ricramiel.common.dtos.EventTransactionDto;
+import org.ricramiel.common.enums.OutboxStatus;
+import org.ricramiel.coreapi.entity.OutboxAccountEvent;
+import org.ricramiel.coreapi.entity.OutboxEvent;
+import org.ricramiel.coreapi.repository.OutboxAccountEventRepository;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class KafkaEventAccountService {
+    private final KafkaTemplate<String, EventAccountCreate> template;
+    private final OutboxAccountEventRepository outboxAccountEventRepository;
+    private final ObjectMapper  objectMapper;
+
+    @Scheduled(fixedRateString = "${outbox.scheduled}")
+    public void eventProcessing() {
+        List<OutboxAccountEvent> listOfOutboxEventEntities = new ArrayList<>(outboxAccountEventRepository.findAllbyStatus("PENDING"));
+
+        log.info("Number of outbox events: {}", listOfOutboxEventEntities.size());
+
+        if (!listOfOutboxEventEntities.isEmpty()) {
+            for (OutboxAccountEvent outboxEvent : listOfOutboxEventEntities) {
+                log.info("Sending event to Kafka");
+                outboxEvent.setStatus(OutboxStatus.SEND);
+                if (sendToKafka(outboxEvent)) {
+                    outboxAccountEventRepository.save(outboxEvent);
+                }
+            }
+        }
+    }
+
+    private boolean sendToKafka(OutboxAccountEvent outboxEventEntity) {
+        try {
+            CompletableFuture<SendResult<String, EventAccountCreate>> sendResult = template.send(
+                    outboxEventEntity.getOutboxTopic(),
+                    objectMapper.readValue(outboxEventEntity.getPayload(), EventAccountCreate.class));
+            SendResult<String, EventAccountCreate> result = sendResult.get();
+            log.info("Partition: {}", result.getRecordMetadata().partition());
+            return true;
+        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
+            log.error("Error sending event to Kafka: {}", e.getMessage());
+            return false;
+        }
+    }
+}
