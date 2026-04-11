@@ -55,6 +55,7 @@ public class CreditCreateProducer {
             LOG.info("Partition: {}", result.getRecordMetadata().partition());
         } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
             LOG.error("Error sending event to Kafka: {}", e.getMessage());
+            throw new RuntimeException();
         }
     }
 }
