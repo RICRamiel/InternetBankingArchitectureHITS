@@ -87,7 +87,7 @@ public class KafkaMessageListener {
                     creditTempRepository.deleteById(creditTemp.getId());
                 }
 
-                IdempotencyKey idempotencyKey = new IdempotencyKey(eventTransactionDto.getId());
+                IdempotencyKey idempotencyKey = IdempotencyKey.builder().id(eventTransactionDto.getId()).build();
                 idempotencyKeyRepository.save(idempotencyKey);
 
                 acknowledgment.acknowledge();

@@ -6,6 +6,8 @@ import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
+import org.ricramiel.coreapi.model.IdempotencyKey;
+import org.ricramiel.coreapi.repository.IdempotencyKeyRepository;
 import org.ricramiel.coreapi.service.ExternalTransactionsService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -24,27 +26,33 @@ import java.util.Objects;
 public class TransactionListener {
 
     private final ExternalTransactionsService transactionsService;
+    private final IdempotencyKeyRepository idempotencyKeyRepository;
 
     //пока не понимаю почему читает только enroll
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "transaction")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
-        try {
-            TransactionKafkaDto dto = eventTransactionDto.getData();
-            log.info("transaction listener received data with destination: {}", dto.getAction());
-            if (Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)) {
-                if (Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)) {
-                    log.info(String.valueOf(!Objects.equals(eventTransactionDto.getDestination(), "client")));
-                    log.info(eventTransactionDto.toString());
-                    transactionsService.enroll(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
+        if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
+            try {
+                TransactionKafkaDto dto = eventTransactionDto.getData();
+                log.info("transaction listener received data with destination: {}", dto.getAction());
+                if (Objects.equals(dto.getTransactionStatus(), TransactionStatus.IN_PROGRESS)) {
+                    if (Objects.equals(dto.getTransactionType(), TransactionType.ENROLLMENT)) {
+                        log.info(String.valueOf(!Objects.equals(eventTransactionDto.getDestination(), "client")));
+                        log.info(eventTransactionDto.toString());
+                        transactionsService.enroll(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
+                    }
+                    if (Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)) {
+                        transactionsService.withdraw(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
+                    }
                 }
-                if (Objects.equals(dto.getTransactionType(), TransactionType.WITHDRAWAL)) {
-                    transactionsService.withdraw(dto, !Objects.equals(eventTransactionDto.getDestination(), "client"), eventTransactionDto.getDestination());
-                }
-            }
 
-            acknowledgment.acknowledge();
-        } catch (Exception e) {
-            log.error("Exception while processing transaction event", e);
+                IdempotencyKey idempotencyKey = IdempotencyKey.builder().id(eventTransactionDto.getId()).build();
+                idempotencyKeyRepository.save(idempotencyKey);
+
+                acknowledgment.acknowledge();
+            } catch (Exception e) {
+                log.error("Exception while processing transaction event", e);
+            }
         }
     }
 }

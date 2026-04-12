@@ -1,4 +1,4 @@
-package org.ricramiel.creditservice.model;
+package org.ricramiel.coreapi.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
