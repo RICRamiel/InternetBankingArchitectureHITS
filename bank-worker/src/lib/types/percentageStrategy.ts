@@ -1,1 +1,0 @@
-export type PercentageStrategy = "FROM_REMAINING_DEBT" | "FROM_TOTAL_DEBT";
