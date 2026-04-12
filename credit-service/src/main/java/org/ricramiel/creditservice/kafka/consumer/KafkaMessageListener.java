@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.*;
 import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.creditservice.infrastructure.CreditServiceImpl;
 import org.ricramiel.creditservice.model.*;
 import org.ricramiel.creditservice.repository.*;
@@ -37,6 +38,8 @@ public class KafkaMessageListener {
     @Transactional
     @KafkaListener(topics = {"${app.kafka.topics.withdraw}", "TransactionEnroll_credit"}, groupId = "withdraw")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
+        //Имитируем проблему кафки
+        ChaosUtil.simulateKafkaProcessingError();
         if(!idempotencyKeyRepository.existsById(eventTransactionDto.getId())){
             try {
                 TransactionKafkaDto transactionKafkaDto = eventTransactionDto.getData();

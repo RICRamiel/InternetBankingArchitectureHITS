@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.notificationservice.dto.SseOperationPayload;
 import org.ricramiel.notificationservice.service.NotificationService;
 import org.ricramiel.notificationservice.service.SseEmitterStore;
@@ -24,6 +25,9 @@ public class OperationEventListener {
 
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "notification-service-group")
     public void handleTransactionEvent(EventTransactionDto event, Acknowledgment ack) {
+        //Имитируем проблему кафки
+        ChaosUtil.simulateKafkaProcessingError();
+
         TransactionKafkaDto data = event.getData();
         if (data == null) {
             log.warn("Received event {} with null data", event.getId());

@@ -6,6 +6,7 @@ import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.coreapi.model.IdempotencyKey;
 import org.ricramiel.coreapi.repository.IdempotencyKeyRepository;
 import org.ricramiel.coreapi.service.ExternalTransactionsService;
@@ -28,9 +29,10 @@ public class TransactionListener {
     private final ExternalTransactionsService transactionsService;
     private final IdempotencyKeyRepository idempotencyKeyRepository;
 
-    //пока не понимаю почему читает только enroll
     @KafkaListener(topicPattern = "${app.kafka.topics.consumer.enroll}|${app.kafka.topics.consumer.withdraw}", groupId = "transaction")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
+        //Имитируем проблему кафки
+        ChaosUtil.simulateKafkaProcessingError();
         if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
             try {
                 TransactionKafkaDto dto = eventTransactionDto.getData();

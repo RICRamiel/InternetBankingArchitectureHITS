@@ -3,6 +3,7 @@ package org.ricramiel.notificationservice.kafka.listener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventAccountCreate;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.notificationservice.entity.AccountUserMapping;
 import org.ricramiel.notificationservice.repository.AccountUserMappingRepository;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,6 +19,9 @@ public class AccountEventListener {
 
     @KafkaListener(topics = "account-event", groupId = "notification-service-group")
     public void handleAccountCreation(EventAccountCreate event, Acknowledgment ack) {
+        //Имитируем проблему кафки
+        ChaosUtil.simulateKafkaProcessingError();
+
         AccountUserMapping mapping = AccountUserMapping.builder()
                 .accountId(event.getCardAccountId())
                 .userId(event.getUserId())
