@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Data
 @Builder
-public class SseOperationPayload {
+public class OperationPayload {
     private UUID operationId;
     private String type;
     private BigDecimal amount;

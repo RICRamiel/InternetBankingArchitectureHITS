@@ -2,7 +2,9 @@ package org.ricramiel.notificationservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ricramiel.notificationservice.dto.SseOperationPayload;
+import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
+import org.ricramiel.notificationservice.dto.FcmTokenRequest;
+import org.ricramiel.notificationservice.dto.OperationPayload;
 import org.ricramiel.notificationservice.entity.AccountUserMapping;
 import org.ricramiel.notificationservice.entity.Notification;
 import org.ricramiel.notificationservice.repository.AccountUserMappingRepository;
@@ -17,7 +19,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
-
+    private final CurrentUserService currentUserService;
+    private final FcmService fcmService;
     private final NotificationRepository notificationRepository;
     private final AccountUserMappingRepository mappingRepository;
 
@@ -26,12 +29,12 @@ public class NotificationService {
     }
 
     @Transactional
-    public UUID saveToHistoryAndGetUserId(UUID eventId, UUID accountId, SseOperationPayload payload) {
+    public Notification saveToHistoryAndGetUserId(UUID eventId, UUID accountId, OperationPayload payload) {
         AccountUserMapping mapping = mappingRepository.findByAccountId(accountId);
 
         if (mapping == null) {
             log.error("Mapping for account {} not found in local DB.", accountId);
-            throw new RuntimeException("Account mapping not found");
+            throw new NotFoundException("Account mapping not found");
         }
 
         UUID userId = mapping.getUserId();
@@ -46,8 +49,7 @@ public class NotificationService {
                 .message(payload.getMessage())
                 .build();
 
-        notificationRepository.save(notification);
-        return userId;
+        return notificationRepository.save(notification);
     }
 
     public List<Notification> getUnreadNotifications(UUID userId) {
@@ -68,5 +70,17 @@ public class NotificationService {
             notification.setRead(true);
             notificationRepository.save(notification);
         }
+    }
+
+    /**
+     * Управление FCM токенами
+     */
+    public void registerFcmToken(FcmTokenRequest request) {
+        UUID currentUserId = currentUserService.getUserId();
+        fcmService.saveOrUpdateToken(currentUserId, request.getToken(), request.getPlatform());
+    }
+
+    public void unregisterFcmToken(String token) {
+        fcmService.removeToken(token);
     }
 }
