@@ -3,6 +3,7 @@ package org.ricramiel.preferencesservice.controllers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.preferencesservice.dtos.UserPreferencesDto;
+import org.ricramiel.preferencesservice.services.CurrentUserService;
 import org.ricramiel.preferencesservice.services.PreferencesService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,21 +19,15 @@ import java.util.UUID;
 public class PreferencesController {
 
     private final PreferencesService preferencesService;
+    private final CurrentUserService currentUserService;
 
     @GetMapping
-    @PreAuthorize("@accessChecker.isSelf(#userId)")
-    public ResponseEntity<UserPreferencesDto> getPreferences(
-            @AuthenticationPrincipal UUID userId) {
-        log.debug("GET preferences request for user: {}", userId);
-        return ResponseEntity.ok(preferencesService.getPreferences(userId));
+    public ResponseEntity<UserPreferencesDto> getPreferences() {
+        return ResponseEntity.ok(preferencesService.getPreferences(currentUserService.getUserId()));
     }
 
     @PutMapping
-    @PreAuthorize("@accessChecker.isSelf(#userId)")
-    public ResponseEntity<UserPreferencesDto> updatePreferences(
-            @AuthenticationPrincipal UUID userId,
-            @RequestBody UserPreferencesDto dto) {
-        log.debug("PUT preferences request for user: {}", userId);
-        return ResponseEntity.ok(preferencesService.updatePreferences(userId, dto));
+    public ResponseEntity<UserPreferencesDto> updatePreferences(@RequestBody UserPreferencesDto dto) {
+        return ResponseEntity.ok(preferencesService.updatePreferences(currentUserService.getUserId(), dto));
     }
 }
