@@ -36,9 +36,16 @@ public class SwaggerConfig {
                                         .in(SecurityScheme.In.HEADER)
                                         .name(CustomHeaders.USER_ROLES_HEADER)
                         )
+                        .addSecuritySchemes("idempotency-key-header",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.APIKEY)
+                                        .in(SecurityScheme.In.HEADER)
+                                        .name(CustomHeaders.IDEMPOTENCY_KEY_HEADER)
+                        )
                 )
                 .addSecurityItem(new SecurityRequirement().addList("JWT"))
                 .addSecurityItem(new SecurityRequirement().addList("user-id-header"))
-                .addSecurityItem(new SecurityRequirement().addList("user-role-header"));
+                .addSecurityItem(new SecurityRequirement().addList("user-role-header"))
+                .addSecurityItem(new SecurityRequirement().addList("idempotency-key-header"));
     }
 }

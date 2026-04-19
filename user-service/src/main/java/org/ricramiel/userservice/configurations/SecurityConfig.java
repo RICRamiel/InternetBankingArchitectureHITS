@@ -7,6 +7,7 @@ import org.ricramiel.common.exceptions.ErrorResponse;
 import org.ricramiel.userservice.api.mappers.JwtModelMapper;
 import org.ricramiel.userservice.domain.models.responses.JwtModel;
 import org.ricramiel.userservice.domain.services.AuthService;
+import org.ricramiel.userservice.infrastructure.idempotency.HttpIdempotencyFilter;
 import org.ricramiel.userservice.infrastructure.security.filters.JwtFilter;
 import org.ricramiel.userservice.infrastructure.security.oauth.CustomOauth2User;
 import org.ricramiel.userservice.infrastructure.security.oauth.OAuth2UserService;
@@ -39,6 +40,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtFilter jwtFilter;
+    private final HttpIdempotencyFilter httpIdempotencyFilter;
     private final AuthService authService;
     private final OAuth2UserService oidcUserService;
     private final JwtModelMapper jwtModelMapper;
@@ -77,6 +79,7 @@ public class SecurityConfig {
                 );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(httpIdempotencyFilter, JwtFilter.class);
 
         return http.build();
     }

@@ -16,7 +16,8 @@ public class DefaultHeadersPropagationConfig {
                         HttpHeaders.AUTHORIZATION,
                         CustomHeaders.USER_ID_HEADER,
                         CustomHeaders.USER_ROLES_HEADER,
-                        CustomHeaders.CORRELATION_ID_HEADER
+                        CustomHeaders.CORRELATION_ID_HEADER,
+                        CustomHeaders.IDEMPOTENCY_KEY_HEADER
                 )
         );
     }

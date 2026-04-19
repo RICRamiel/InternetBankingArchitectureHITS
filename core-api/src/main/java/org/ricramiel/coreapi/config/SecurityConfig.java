@@ -3,6 +3,7 @@ package org.ricramiel.coreapi.config;
 import lombok.RequiredArgsConstructor;
 import org.ricramiel.common.headers.security.SecurityHeadersPropagationFilter;
 import org.ricramiel.common.headers.security.SetSecurityContextFromHeadersFilter;
+import org.ricramiel.coreapi.idempotency.HttpIdempotencyFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final SecurityHeadersPropagationFilter securityHeadersPropagationFilter;
     private final SetSecurityContextFromHeadersFilter setSecurityContextFromHeadersFilter;
+    private final HttpIdempotencyFilter httpIdempotencyFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,6 +42,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(setSecurityContextFromHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(httpIdempotencyFilter, SetSecurityContextFromHeadersFilter.class)
                 .addFilterAfter(securityHeadersPropagationFilter, UsernamePasswordAuthenticationFilter.class)
                 .securityContext(securityContext -> securityContext.requireExplicitSave(true));
 
