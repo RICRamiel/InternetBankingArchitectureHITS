@@ -25,7 +25,7 @@ const STRATEGIES = new Set<CreditRuleDto["percentageStrategy"]>([
   "FROM_TOTAL_DEBT",
 ]);
 
-const CURRENCIES = new Set<Currency>(["DOLLAR", "EURO", "RUBLE"]);
+const CURRENCIES = new Set<Currency>(["USD", "EUR", "RUB"]);
 
 export type CreditRuleFormInput = {
   ruleName?: unknown;
@@ -36,7 +36,7 @@ export type CreditRuleFormInput = {
 };
 
 export function validateCreditRuleForm(
-  input: CreditRuleFormInput,
+    input: CreditRuleFormInput,
 ): FormValidationResult<CreditRuleDto> {
   const errors: FormFieldErrors[] = [];
   const ruleName = trimString(input.ruleName);
@@ -70,7 +70,7 @@ export function validateCreditRuleForm(
       errors.push(fieldError("collectionPeriodSeconds", sec.message));
     } else if (!Number.isInteger(sec.value)) {
       errors.push(
-        fieldError("collectionPeriodSeconds", "Укажите целое число секунд"),
+          fieldError("collectionPeriodSeconds", "Укажите целое число секунд"),
       );
     } else {
       collectionPeriodSeconds = sec.value;
@@ -79,11 +79,16 @@ export function validateCreditRuleForm(
   const openingDateRaw = trimString(input.openingDate);
   let openingDate: string | undefined;
   if (openingDateRaw.length > 0) {
-    const t = Date.parse(openingDateRaw);
+    // datetime-local даёт «YYYY-MM-DDTHH:mm» — дополняем секунды; бэкенд (Java LocalDateTime) ждёт строку без таймзоны.
+    let normalized = openingDateRaw;
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) {
+      normalized = `${normalized}:00`;
+    }
+    const t = Date.parse(normalized);
     if (Number.isNaN(t)) {
       errors.push(fieldError("openingDate", "Некорректная дата"));
     } else {
-      openingDate = openingDateRaw;
+      openingDate = normalized;
     }
   }
   if (errors.length > 0) {
@@ -106,8 +111,9 @@ export type CreditCreateFormInput = {
   moneyCurrency?: unknown;
 };
 
+
 export function validateCreditCreateForm(
-  input: CreditCreateFormInput,
+    input: CreditCreateFormInput,
 ): FormValidationResult<CreditCreateModelDto> {
   const errors: FormFieldErrors[] = [];
   if (!isNonEmptyId(input.userId)) {
@@ -125,8 +131,8 @@ export function validateCreditCreateForm(
   }
   const curRaw = trimString(input.moneyCurrency);
   const currency = CURRENCIES.has(curRaw as Currency)
-    ? (curRaw as Currency)
-    : undefined;
+      ? (curRaw as Currency)
+      : undefined;
   if (currency === undefined) {
     errors.push(fieldError("money.currency", "Выберите валюту"));
   }

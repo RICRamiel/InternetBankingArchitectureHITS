@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request, Response
@@ -26,20 +27,11 @@ from generated.bff_browser_models import (
 )
 from generated.upstream.api.account import edit_user_1 as upstream_edit_account
 from generated.upstream.api.account import get_user as upstream_get_account
-from generated.upstream.api.admin.get_bank_treasury_balances import (
-    asyncio_detailed as upstream_bank_treasury_balances,
-)
-from generated.upstream.api.admin.get_bank_treasury_transactions import (
-    asyncio_detailed as upstream_bank_treasury_transactions,
-)
 from generated.upstream.api.card_account_controller import (
     check_account_exists as upstream_check_exists,
 )
 from generated.upstream.api.card_account_controller import (
     close_account as upstream_close_account,
-)
-from generated.upstream.api.card_account_controller.set_main_account import (
-    asyncio_detailed as upstream_set_main_account,
 )
 from generated.upstream.api.card_account_controller import (
     get_user_card_account as upstream_get_card,
@@ -85,6 +77,9 @@ from generated.upstream.api.credit_rule_controller import (
 )
 from generated.upstream.api.credit_rule_controller import (
     get_all_credit_rules as upstream_all_rules,
+)
+from generated.upstream.api.currency_controller.get_currency_list import (
+    asyncio_detailed as upstream_get_currency_list,
 )
 from generated.upstream.api.credit_rule_controller import (
     get_credit_rule_by_id as upstream_get_rule,
@@ -133,6 +128,24 @@ from generated.upstream.models.user_preferences_dto import (
 from generated.upstream.models.withdraw_dto import WithdrawDto as UpWithdrawDto
 from generated.upstream.types import UNSET
 
+try:
+    from generated.upstream.api.admin.get_bank_treasury_balances import (
+        asyncio_detailed as upstream_bank_treasury_balances,
+    )
+    from generated.upstream.api.admin.get_bank_treasury_transactions import (
+        asyncio_detailed as upstream_bank_treasury_transactions,
+    )
+except ModuleNotFoundError:
+    upstream_bank_treasury_balances = None  # type: ignore[misc, assignment]
+    upstream_bank_treasury_transactions = None  # type: ignore[misc, assignment]
+
+try:
+    from generated.upstream.api.card_account_controller.set_main_account import (
+        asyncio_detailed as upstream_set_main_account,
+    )
+except ModuleNotFoundError:
+    upstream_set_main_account = None  # type: ignore[misc, assignment]
+
 router = APIRouter()
 SessionUser = MockUser | BffUser
 
@@ -162,8 +175,45 @@ def _user_edit_upstream(body: UserEditModelDto) -> UpUserEdit:
     return UpUserEdit.from_dict(raw)
 
 
+def _opening_date_java_local_date_time(value: object | None, *, default: datetime) -> str:
+    """Java LocalDateTime принимает дату-время без зоны (ISO-8601), напр. 2007-12-03T10:15:30."""
+    if value is None:
+        dt = default
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(UTC).replace(tzinfo=None)
+        return dt.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    if isinstance(value, datetime):
+        dt = value
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(UTC).replace(tzinfo=None)
+        return dt.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return _opening_date_java_local_date_time(None, default=default)
+        try:
+            if len(s) == 16 and s[10] == "T" and s.count(":") == 1:
+                s = f"{s}:00"
+            if s.endswith("Z"):
+                dt = datetime.fromisoformat(s[:-1] + "+00:00")
+            else:
+                dt = datetime.fromisoformat(s)
+        except ValueError:
+            return s[:19] if len(s) >= 19 else s
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(UTC).replace(tzinfo=None)
+        return dt.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
+    return _opening_date_java_local_date_time(None, default=default)
+
+
 def _credit_rule_upstream(body: CreditRuleDTO) -> UpCreditRuleDTO:
-    return UpCreditRuleDTO.from_dict(body.model_dump(mode="json", by_alias=True))
+    raw = body.model_dump(mode="json", by_alias=True, exclude_none=True)
+    default_opening = datetime.now(UTC).replace(microsecond=0)
+    raw["openingDate"] = _opening_date_java_local_date_time(
+        body.openingDate,
+        default=default_opening,
+    )
+    return UpCreditRuleDTO.from_dict(raw)
 
 
 def _prefs_upstream(body: UserPreferencesDto) -> UpUserPrefs:
@@ -295,6 +345,10 @@ async def get_bank_treasury_balances(
         return _forbidden()
     if settings.use_mock_bank_treasury:
         return store.bank_treasury_balances()
+    if upstream_bank_treasury_balances is None:
+        return _not_impl(
+            "Bank treasury: нет сгенерированного upstream-клиента (пути не в openApi.backend-gateway)."
+        )
     if ctx.record is None:
         return _unauth()
     r = await ctx.call_upstream(lambda c: upstream_bank_treasury_balances(client=c))
@@ -317,6 +371,10 @@ async def get_bank_treasury_transactions(
         return _forbidden()
     if settings.use_mock_bank_treasury:
         return store.page_bank_treasury_transactions(pageIndex, pageSize)
+    if upstream_bank_treasury_transactions is None:
+        return _not_impl(
+            "Bank treasury: нет сгенерированного upstream-клиента (пути не в openApi.backend-gateway)."
+        )
     if ctx.record is None:
         return _unauth()
     r = await ctx.call_upstream(
@@ -573,7 +631,7 @@ async def open_account(
         return _unauth()
     if not _can_access_path(user, userId):
         return _forbidden()
-    cur = body.currency.root if body.currency is not None else "RUBLE"
+    cur = body.currency.root if body.currency is not None else "RUB"
     up_body = UpCardCreate(name=body.name or UNSET, currency=cur, is_main=False)
     r = await ctx.call_upstream(
         lambda c, uid=userId: upstream_open_account.asyncio_detailed(
@@ -611,6 +669,10 @@ async def set_main_account(
 ):
     if ctx.record is None or user is None:
         return _unauth()
+    if upstream_set_main_account is None:
+        return _not_impl(
+            "set-main: нет сгенерированного upstream-клиента (путь не в openApi.backend-gateway)."
+        )
     r = await ctx.call_upstream(
         lambda c, aid=accountId: upstream_set_main_account(client=c, account_id=aid)
     )
@@ -725,6 +787,21 @@ async def get_user_card_accounts(
                 client=c, user_id=uid, page_index=pi, page_size=ps
             )
         )
+    )
+    if r is None:
+        return _unauth()
+    return finish_upstream_response(r)
+
+
+@router.get("/core-api/currency/all")
+async def get_currency_list(
+    user: Annotated[SessionUser | None, Depends(get_current_user_optional)],
+    ctx: Annotated[UpstreamContext, Depends(get_upstream_context)],
+):
+    if ctx.record is None or user is None:
+        return _unauth()
+    r = await ctx.call_upstream(
+        lambda c: upstream_get_currency_list.asyncio_detailed(client=c)
     )
     if r is None:
         return _unauth()

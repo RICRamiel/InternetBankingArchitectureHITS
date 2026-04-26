@@ -40,7 +40,7 @@ public class OperationEventListener {
             log.debug("Event {} already processed, skipping", event.getId());
             return;
         }
-
+        log.info("Received event {}", event.getId());
         try {
             OperationPayload payload = OperationPayload.builder()
                     .operationId(data.getId())
@@ -50,14 +50,10 @@ public class OperationEventListener {
                     .message(data.getAction())
                     .build();
 
-            // Сохраняем в БД и получаем полную сущность уведомления
             Notification savedNotification = notificationService.saveToHistoryAndGetUserId(event.getId(), data.getAccountId(), payload);
             UUID clientId = savedNotification.getUserId();
 
-            // 1. Отправляем Push конкретному клиенту (на его панель client.bank.su)
-            fcmService.sendToUser(clientId, savedNotification, "WEB_USER");
-
-            // 2. Отправляем Push всем авторизованным работникам (на их панель worker.bank.su)
+            fcmService.sendToUser(clientId, savedNotification, "WEB_CLIENT");
             fcmService.sendToAllWorkers(savedNotification);
 
             log.info("Successfully processed and triggered FCM push for operation: {}", data.getId());

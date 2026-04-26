@@ -40,3 +40,6 @@ build/
 /user-service/.env
 /user-service/src/main/resources/config/env.properties
 /logs/gateway.log
+/pgdata
+/logs
+env.properties
