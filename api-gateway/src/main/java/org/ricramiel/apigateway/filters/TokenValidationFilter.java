@@ -3,6 +3,7 @@ package org.ricramiel.apigateway.filters;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.ricramiel.common.headers.CustomHeaders;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
@@ -35,9 +36,20 @@ public class TokenValidationFilter extends AbstractGatewayFilterFactory<TokenVal
 
             String token = authHeader.substring(7);
 
+            String traceId = exchange.getRequest().getHeaders().getFirst(CustomHeaders.CORRELATION_ID_HEADER);
+            String spanId = exchange.getRequest().getHeaders().getFirst(CustomHeaders.SPAN_ID_HEADER);
+
             return webClient.get()
                     .uri(config.getTokenValidationEndpointUrl())
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .headers(headers -> {
+                        if (traceId != null) {
+                            headers.set(CustomHeaders.CORRELATION_ID_HEADER, traceId);
+                        }
+                        if (spanId != null) {
+                            headers.set(CustomHeaders.SPAN_ID_HEADER, spanId);
+                        }
+                    })
                     .retrieve()
                     .toBodilessEntity()
                     .flatMap(response -> chain.filter(exchange))

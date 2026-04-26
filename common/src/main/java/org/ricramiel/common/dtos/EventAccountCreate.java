@@ -14,4 +14,11 @@ import java.util.UUID;
 public class EventAccountCreate {
     private UUID cardAccountId;
     private UUID userId;
+    private String traceId;
+    private String parentSpanId;
+
+    public EventAccountCreate(UUID cardAccountId, UUID userId) {
+        this.cardAccountId = cardAccountId;
+        this.userId = userId;
+    }
 }

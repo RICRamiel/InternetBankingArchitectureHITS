@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitoring</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, Arial, sans-serif;
+            background: #f6f7f9;
+            color: #17202a;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 28px;
+            background: #ffffff;
+            border-bottom: 1px solid #d9dee5;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select, button, input {
+            height: 36px;
+            border: 1px solid #b9c1cc;
+            border-radius: 6px;
+            background: #ffffff;
+            padding: 0 10px;
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            background: #1f6feb;
+            color: white;
+            border-color: #1f6feb;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat, .panel {
+            background: #ffffff;
+            border: 1px solid #d9dee5;
+            border-radius: 8px;
+        }
+
+        .stat {
+            padding: 14px;
+        }
+
+        .label {
+            color: #5d6876;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .value {
+            margin-top: 8px;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .panel {
+            min-height: 300px;
+            padding: 16px;
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 16px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 240px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #e3e7ed;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            color: #5d6876;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #b42318;
+            font-weight: 700;
+        }
+
+        .ok {
+            color: #087443;
+            font-weight: 700;
+        }
+
+        .wide {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 900px) {
+            header, .toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .stats, .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Monitoring Dashboard</h1>
+    <div class="toolbar">
+        <select id="range">
+            <option value="15">15 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="360">6 hours</option>
+            <option value="1440">24 hours</option>
+        </select>
+        <input id="traceInput" placeholder="Trace ID">
+        <button id="traceButton">Find Trace</button>
+        <button id="refreshButton">Refresh</button>
+    </div>
+</header>
+<main>
+    <section class="stats">
+        <div class="stat"><div class="label">Events</div><div class="value" id="total">0</div></div>
+        <div class="stat"><div class="label">Errors</div><div class="value" id="errors">0</div></div>
+        <div class="stat"><div class="label">Error rate</div><div class="value" id="errorRate">0%</div></div>
+        <div class="stat"><div class="label">Avg response</div><div class="value" id="avg">0 ms</div></div>
+        <div class="stat"><div class="label">P95 response</div><div class="value" id="p95">0 ms</div></div>
+    </section>
+    <section class="grid">
+        <div class="panel">
+            <h2>Requests by service</h2>
+            <canvas id="serviceChart" width="640" height="240"></canvas>
+        </div>
+        <div class="panel">
+            <h2>Average response time</h2>
+            <canvas id="durationChart" width="640" height="240"></canvas>
+        </div>
+        <div class="panel wide">
+            <h2>Recent events</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Trace</th>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                </tr>
+                </thead>
+                <tbody id="events"></tbody>
+            </table>
+        </div>
+        <div class="panel wide">
+            <h2>Trace details</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Span</th>
+                    <th>Parent</th>
+                    <th>Service</th>
+                    <th>Type</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                </tr>
+                </thead>
+                <tbody id="trace"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script>
+    const byId = (id) => document.getElementById(id);
+    const fmt = (value) => Number(value || 0).toFixed(1);
+
+    async function getJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+    }
+
+    function targetOf(item) {
+        return item.endpoint || item.topic || "";
+    }
+
+    function drawBars(canvas, rows, valueSelector, color) {
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        const max = Math.max(1, ...rows.map(valueSelector));
+        const gap = 12;
+        const barWidth = Math.max(18, (width - gap * (rows.length + 1)) / Math.max(1, rows.length));
+        ctx.font = "12px Arial";
+        ctx.textBaseline = "top";
+        rows.forEach((row, index) => {
+            const value = valueSelector(row);
+            const x = gap + index * (barWidth + gap);
+            const barHeight = Math.round((height - 54) * value / max);
+            const y = height - 32 - barHeight;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, barWidth, barHeight);
+            ctx.fillStyle = "#17202a";
+            ctx.fillText(String(Math.round(value)), x, Math.max(0, y - 18));
+            ctx.fillStyle = "#5d6876";
+            ctx.fillText(row.serviceName.slice(0, 14), x, height - 24);
+        });
+    }
+
+    function renderRows(target, rows, traceMode = false) {
+        target.innerHTML = rows.map((item) => `
+            <tr>
+                <td>${item.time || ""}</td>
+                ${traceMode ? `<td>${item.spanId || ""}</td><td>${item.parentSpanId || ""}</td>` : `<td>${item.traceId || ""}</td>`}
+                <td>${item.serviceName || ""}</td>
+                <td>${item.operationType || ""}</td>
+                <td>${targetOf(item)}</td>
+                <td class="${item.error ? "error" : "ok"}">${item.statusCode}</td>
+                <td>${item.durationMs} ms</td>
+            </tr>
+        `).join("");
+    }
+
+    async function refresh() {
+        const minutes = byId("range").value;
+        const [summary, services, recent] = await Promise.all([
+            getJson(`metrics/summary?minutes=${minutes}`),
+            getJson(`metrics/services?minutes=${minutes}`),
+            getJson("metrics/recent")
+        ]);
+
+        byId("total").textContent = summary.total;
+        byId("errors").textContent = summary.errors;
+        byId("errorRate").textContent = `${fmt(summary.errorRate)}%`;
+        byId("avg").textContent = `${fmt(summary.averageDurationMs)} ms`;
+        byId("p95").textContent = `${fmt(summary.p95DurationMs)} ms`;
+
+        drawBars(byId("serviceChart"), services, (row) => row.total, "#1f6feb");
+        drawBars(byId("durationChart"), services, (row) => row.averageDurationMs, "#d97706");
+        renderRows(byId("events"), recent);
+    }
+
+    async function findTrace() {
+        const traceId = byId("traceInput").value.trim();
+        if (!traceId) return;
+        const rows = await getJson(`metrics/traces/${encodeURIComponent(traceId)}`);
+        renderRows(byId("trace"), rows, true);
+    }
+
+    byId("refreshButton").addEventListener("click", refresh);
+    byId("range").addEventListener("change", refresh);
+    byId("traceButton").addEventListener("click", findTrace);
+    refresh();
+    setInterval(refresh, 10000);
+</script>
+</body>
+</html>

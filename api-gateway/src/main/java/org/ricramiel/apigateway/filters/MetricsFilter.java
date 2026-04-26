@@ -6,6 +6,7 @@ import org.ricramiel.common.dtos.EventMetricDto;
 import org.ricramiel.common.headers.CustomHeaders;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -14,49 +15,70 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class MetricsFilter implements WebFilter { // <-- ИМЕННО WebFilter, а не OncePerRequestFilter
+public class MetricsFilter implements WebFilter {
 
-    private final KafkaTemplate<String, EventMetricDto> kafkaTemplate;
+    @SuppressWarnings("rawtypes")
+    private final KafkaTemplate kafkaTemplate;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         long startTime = System.currentTimeMillis();
+        ServerHttpRequest request = exchange.getRequest();
 
-        String uri = exchange.getRequest().getURI().getPath();
+        String uri = request.getURI().getPath();
         String[] parts = uri.split("/");
-        String serviceName = parts.length >= 3 ? parts[2] : "unknown";
+        String routedService = parts.length >= 3 ? parts[2] : "unknown";
 
-        // В WebFlux заголовки берутся так
-        String traceId = exchange.getRequest().getHeaders().getFirst(CustomHeaders.CORRELATION_ID_HEADER);
+        String traceId = request.getHeaders().getFirst(CustomHeaders.CORRELATION_ID_HEADER);
+        if (traceId == null || traceId.isBlank()) {
+            traceId = UUID.randomUUID().toString();
+        }
+        String parentSpanId = request.getHeaders().getFirst(CustomHeaders.SPAN_ID_HEADER);
+        String spanId = UUID.randomUUID().toString();
+        String finalTraceId = traceId;
+        String finalSpanId = spanId;
 
-        log.info("[MetricsFilter WebFlux] Перехвачен запрос: {}, ServiceName: {}", uri, serviceName);
+        ServerWebExchange tracedExchange = exchange.mutate()
+                .request(builder -> builder.headers(headers -> {
+                    headers.set(CustomHeaders.CORRELATION_ID_HEADER, finalTraceId);
+                    headers.set(CustomHeaders.SPAN_ID_HEADER, finalSpanId);
+                }))
+                .build();
+        tracedExchange.getResponse().getHeaders().set(CustomHeaders.CORRELATION_ID_HEADER, finalTraceId);
+        tracedExchange.getResponse().getHeaders().set(CustomHeaders.SPAN_ID_HEADER, finalSpanId);
 
-        // Запускаем цепочку и ловим момент завершения (успешного или с ошибкой)
-        return chain.filter(exchange).doFinally(signalType -> {
+        log.info("[MetricsFilter WebFlux] Request intercepted: {}, routedService={}, traceId={}",
+                uri, routedService, finalTraceId);
 
+        String finalParentSpanId = parentSpanId;
+        return chain.filter(tracedExchange).doFinally(signalType -> {
             long duration = System.currentTimeMillis() - startTime;
-
-            // В WebFlux статус берется из объекта ответа
-            int status = exchange.getResponse().getStatusCode() != null ?
-                    exchange.getResponse().getStatusCode().value() : 500;
+            int status = tracedExchange.getResponse().getStatusCode() != null
+                    ? tracedExchange.getResponse().getStatusCode().value()
+                    : 500;
 
             EventMetricDto metric = EventMetricDto.builder()
                     .time(LocalDateTime.now())
-                    .traceId(traceId)
-                    .serviceName(serviceName)
+                    .traceId(finalTraceId)
+                    .spanId(finalSpanId)
+                    .parentSpanId(finalParentSpanId)
+                    .serviceName("api-gateway")
+                    .operationType("GATEWAY")
+                    .method(request.getMethod().name())
                     .endpoint(uri)
                     .durationMs((int) duration)
                     .statusCode(status)
                     .isError(status >= 400)
                     .build();
 
-            log.info("[MetricsFilter WebFlux] Отправляю метрику: Status={}, Duration={}ms", status, duration);
-            kafkaTemplate.send("metrics-topic", metric);
+            log.info("[MetricsFilter WebFlux] Sending metric: status={}, duration={}ms", status, duration);
+            kafkaTemplate.send("metrics-topic", finalTraceId, metric);
         });
     }
 }

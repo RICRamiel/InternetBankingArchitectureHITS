@@ -17,6 +17,7 @@ public class DefaultHeadersPropagationConfig {
                         CustomHeaders.USER_ID_HEADER,
                         CustomHeaders.USER_ROLES_HEADER,
                         CustomHeaders.CORRELATION_ID_HEADER,
+                        CustomHeaders.SPAN_ID_HEADER,
                         CustomHeaders.IDEMPOTENCY_KEY_HEADER
                 )
         );

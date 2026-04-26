@@ -2,12 +2,24 @@ package org.ricramiel.creditservice.kafka.consumer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.ricramiel.common.dtos.*;
+import org.ricramiel.common.dtos.EventTransactionDto;
+import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.tracing.MonitoringEventPublisher;
+import org.ricramiel.common.tracing.TraceContext;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.creditservice.infrastructure.CreditServiceImpl;
-import org.ricramiel.creditservice.model.*;
-import org.ricramiel.creditservice.repository.*;
+import org.ricramiel.creditservice.model.Credit;
+import org.ricramiel.creditservice.model.CreditRating;
+import org.ricramiel.creditservice.model.CreditTemp;
+import org.ricramiel.creditservice.model.IdempotencyKey;
+import org.ricramiel.creditservice.model.PaymentHistoryRecord;
+import org.ricramiel.creditservice.repository.CreditRatingRepository;
+import org.ricramiel.creditservice.repository.CreditRepository;
+import org.ricramiel.creditservice.repository.CreditTempRepository;
+import org.ricramiel.creditservice.repository.IdempotencyKeyRepository;
+import org.ricramiel.creditservice.repository.PaymentHistoryRecordRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -34,14 +46,19 @@ public class KafkaMessageListener {
     private final CreditRepository creditRepository;
     private final CreditRatingRepository creditRatingRepository;
     private final IdempotencyKeyRepository idempotencyKeyRepository;
+    private final MonitoringEventPublisher monitoringEventPublisher;
 
     @Transactional
     @KafkaListener(topics = {"${app.kafka.topics.withdraw}", "TransactionEnroll_credit"}, groupId = "withdraw")
     public void listenWithAck(@Payload EventTransactionDto eventTransactionDto, Acknowledgment acknowledgment) {
-        //Имитируем проблему кафки
-        ChaosUtil.simulateKafkaProcessingError();
-        if(!idempotencyKeyRepository.existsById(eventTransactionDto.getId())){
-            try {
+        long start = System.currentTimeMillis();
+        TraceContext.TraceState trace = TraceHeaders.openFrom(eventTransactionDto);
+        boolean error = false;
+        String errorMessage = null;
+
+        try {
+            ChaosUtil.simulateKafkaProcessingError();
+            if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
                 TransactionKafkaDto transactionKafkaDto = eventTransactionDto.getData();
 
                 if (!Objects.equals(eventTransactionDto.getDestination(), type)) {
@@ -50,22 +67,19 @@ public class KafkaMessageListener {
                     return;
                 }
 
-                if (transactionKafkaDto.getAction().equals("Погашение кредита")) {
-
+                if (transactionKafkaDto.getAction().equals("РџРѕРіР°С€РµРЅРёРµ РєСЂРµРґРёС‚Р°")) {
                     PaymentHistoryRecord paymentHistoryRecord = paymentHistoryRecordRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
                     paymentHistoryRecord.setTransactionStatus(transactionKafkaDto.getTransactionStatus());
                     paymentHistoryRecordRepository.save(paymentHistoryRecord);
-
                 }
 
                 if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-                        && transactionKafkaDto.getAction().equals("Погашение кредита")) {
+                        && transactionKafkaDto.getAction().equals("РџРѕРіР°С€РµРЅРёРµ РєСЂРµРґРёС‚Р°")) {
                     creditService.makeEnrollment(transactionKafkaDto.getAccountId(), transactionKafkaDto.getMoney());
                 }
 
-
                 if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-                        && transactionKafkaDto.getAction().equals("Создание кредита")) {
+                        && transactionKafkaDto.getAction().equals("РЎРѕР·РґР°РЅРёРµ РєСЂРµРґРёС‚Р°")) {
 
                     CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
 
@@ -94,10 +108,24 @@ public class KafkaMessageListener {
                 idempotencyKeyRepository.save(idempotencyKey);
 
                 acknowledgment.acknowledge();
-
-            } catch (Exception e) {
-                log.error("Exception while processing withdraw event", e);
             }
+        } catch (Exception e) {
+            error = true;
+            errorMessage = e.getMessage();
+            log.error("Exception while processing withdraw event", e);
+        } finally {
+            monitoringEventPublisher.publish(monitoringEventPublisher.metric(
+                    trace,
+                    MonitoringEventPublisher.KAFKA_CONSUMER,
+                    "CONSUME",
+                    null,
+                    eventTransactionDto.getDestination(),
+                    System.currentTimeMillis() - start,
+                    error ? 500 : 200,
+                    error,
+                    errorMessage
+            ));
+            TraceContext.clear();
         }
     }
 }

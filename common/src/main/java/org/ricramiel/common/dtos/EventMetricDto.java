@@ -14,9 +14,15 @@ import java.time.LocalDateTime;
 public class EventMetricDto {
     private LocalDateTime time;
     private String traceId;
+    private String spanId;
+    private String parentSpanId;
     private String serviceName;
+    private String operationType;
+    private String method;
     private String endpoint;
+    private String topic;
     private int durationMs;
     private int statusCode;
     private boolean isError;
+    private String errorMessage;
 }

@@ -83,6 +83,8 @@ services:
       - WORKER_SECURE_URL=https://worker.thallassianangel.su
       - API_URL=http://api.thallassianangel.su
       - API_SECURE_URL=https://api.thallassianangel.su
+      - NOTIFICATION_SERVICE_URI=http://notification-service:8007
+      - KAFKA_SERVER_IP_PORT=kafka:29092
     networks:
       - proxy-network
     restart: unless-stopped
@@ -126,6 +128,7 @@ services:
       - JWT_ACCESS_SECRET=iMO7Z2UBLiapoEsVkTLkwiZhLe6v+klhTLrVOCaLfdBvysaAALR2B54PGhr6i8y8TDGKcCxeU5ze+vARv1yP3Q==
       - JWT_REFRESH_SECRET=AB2Tr5Zslz0PsAMgREcbPVwtSVKFa0a7MoC6mM4tanAVBYExg1RQjZVMqzlsP9gdVA23Nr37/zDnzeYBt8mI4w==
       - SERVER_PORT=8000
+      - KAFKA_SERVER_IP_PORT=kafka:29092
     networks:
       - proxy-network
     restart: unless-stopped
@@ -164,6 +167,7 @@ services:
       - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
       - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
       - DB_URL=jdbc:postgresql://postgres:5432/preferencesservice
+      - KAFKA_SERVER_IP_PORT=kafka:29092
     networks:
       - proxy-network
     restart: unless-stopped
@@ -179,10 +183,27 @@ services:
       - TRANSACTION_TOPIC=TransactionsTopic
       - TRANSACTION_ENROLL=TransactionEnroll
       - TRANSACTION_WITHDRAW=TransactionWithdraw
-      - KAFKA_SERVER_IP=127.0.0.1:29092
+      - KAFKA_SERVER_IP=kafka:29092
       - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
       - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
       - DB_URL=jdbc:postgresql://postgres:5432/transactionservice
+    networks:
+      - proxy-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: bank-notification-service
+    expose:
+      - "8007"
+    environment:
+      - SERVER_PORT=8007
+      - KAFKA_SERVER_IP_PORT=kafka:29092
+      - DB_USERNAME=c417110f943e48c5a62d45633bdf9ea2
+      - DB_PASSWORD=80ca53193cc6401fba4a426f75432d86
+      - DB_URL=jdbc:postgresql://postgres:5432/notificationservice
     networks:
       - proxy-network
     restart: unless-stopped
@@ -281,6 +302,42 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5433:5432"
+    networks:
+      - proxy-network
+
+  monitoring-service:
+    build:
+      context: .
+      dockerfile: monitoring-service/Dockerfile
+    container_name: bank-monitoring-service
+    ports:
+      - "8008:8008"
+    environment:
+      - SERVER_PORT=8008
+      - KAFKA_SERVER_IP_PORT=kafka:29092
+      - MONITORING_DB_URL=jdbc:postgresql://monitoring-db:5432/monitoring_db
+      - MONITORING_DB_USERNAME=admin
+      - MONITORING_DB_PASSWORD=password
+    depends_on:
+      - kafka
+      - monitoring-db
+    networks:
+      - proxy-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bank-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - monitoring-db
+    networks:
+      - proxy-network
 
   kafka:
     image: obsidiandynamics/kafka

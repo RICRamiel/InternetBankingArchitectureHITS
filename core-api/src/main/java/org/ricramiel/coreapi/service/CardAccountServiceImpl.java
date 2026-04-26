@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventAccountCreate;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.coreapi.dto.CardAccountCreateDto;
 import org.ricramiel.coreapi.entity.CardAccount;
 import org.ricramiel.coreapi.entity.OutboxAccountEvent;
@@ -47,8 +48,10 @@ public class CardAccountServiceImpl {
                     .isMain((dto.getIsMain() != null) && dto.getIsMain())
                     .build();
             CardAccount savedCardAccount = cardAccountRepository.save(cardAccount);
+            EventAccountCreate event = new EventAccountCreate(savedCardAccount.getId(), savedCardAccount.getUserId());
+            TraceHeaders.applyCurrentTrace(event);
             outboxAccountEventRepository.save(OutboxAccountEvent.builder()
-                    .payload(objectMapper.writeValueAsString(new EventAccountCreate(savedCardAccount.getId(), savedCardAccount.getUserId())))
+                    .payload(objectMapper.writeValueAsString(event))
                     .outboxTopic("account-event")
                     .build());
             return savedCardAccount;

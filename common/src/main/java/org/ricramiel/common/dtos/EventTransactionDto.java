@@ -13,6 +13,9 @@ public class EventTransactionDto{
     private TransactionKafkaDto data;
     private LocalDateTime creationDate;
     private String destination;
+    private String traceId;
+    private String parentSpanId;
+
     public EventTransactionDto(UUID id, TransactionKafkaDto data, LocalDateTime creationDate, String destination) {
         this.id = id;
         this.data = data;

@@ -9,6 +9,7 @@ import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.dtos.WithdrawDto;
 import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRule;
 import org.ricramiel.creditservice.model.OutboxEvent;
@@ -127,6 +128,7 @@ public class ScheduledService {
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
         eventTransactionDto.setDestination("credit");
+        TraceHeaders.applyCurrentTrace(eventTransactionDto);
         outboxEvent.setPayload(objectMapper.writeValueAsString(eventTransactionDto));
         outboxRepository.save(outboxEvent);
     }

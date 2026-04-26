@@ -18,11 +18,17 @@ public class MetricsListener {
         MetricEntity entity = new MetricEntity();
         entity.setTime(dto.getTime());
         entity.setTraceId(dto.getTraceId());
+        entity.setSpanId(dto.getSpanId());
+        entity.setParentSpanId(dto.getParentSpanId());
         entity.setServiceName(dto.getServiceName());
+        entity.setOperationType(dto.getOperationType());
+        entity.setMethod(dto.getMethod());
         entity.setEndpoint(dto.getEndpoint());
+        entity.setTopic(dto.getTopic());
         entity.setDurationMs(dto.getDurationMs());
         entity.setStatusCode(dto.getStatusCode());
         entity.setError(dto.isError());
+        entity.setErrorMessage(dto.getErrorMessage());
 
         metricRepository.save(entity);
     }

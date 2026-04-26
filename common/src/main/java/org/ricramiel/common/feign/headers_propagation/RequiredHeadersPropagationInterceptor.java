@@ -4,6 +4,8 @@ import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.ricramiel.common.headers.CustomHeaders;
+import org.ricramiel.common.tracing.TraceContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -29,6 +31,16 @@ public class RequiredHeadersPropagationInterceptor implements RequestInterceptor
     }
 
     private void propagateHeader(String headerName, HttpServletRequest request, RequestTemplate template) {
+        TraceContext.TraceState trace = TraceContext.current();
+        if (trace != null && CustomHeaders.CORRELATION_ID_HEADER.equals(headerName)) {
+            template.header(headerName, trace.traceId());
+            return;
+        }
+        if (trace != null && CustomHeaders.SPAN_ID_HEADER.equals(headerName)) {
+            template.header(headerName, trace.spanId());
+            return;
+        }
+
         String headerValue = request.getHeader(headerName);
         if (headerValue != null) {
             template.header(headerName, headerValue);

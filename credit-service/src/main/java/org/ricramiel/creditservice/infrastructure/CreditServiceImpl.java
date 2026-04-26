@@ -10,6 +10,7 @@ import org.ricramiel.common.enums.TransactionStatus;
 import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.exceptions.status_code_exceptions.CreditAlreadyExistsException;
 import org.ricramiel.common.exceptions.status_code_exceptions.NotFoundException;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.creditservice.dto.CreditCreateModelDto;
 import org.ricramiel.creditservice.model.*;
 import org.ricramiel.creditservice.repository.*;
@@ -84,6 +85,7 @@ public class CreditServiceImpl implements CreditService {
         eventTransactionDto.setData(transactionKafkaDto);
         eventTransactionDto.setId(UUID.randomUUID());
         eventTransactionDto.setCreationDate(LocalDateTime.now());
+        TraceHeaders.applyCurrentTrace(eventTransactionDto);
 
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC);

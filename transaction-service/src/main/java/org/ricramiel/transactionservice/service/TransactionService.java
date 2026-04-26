@@ -9,6 +9,7 @@ import org.ricramiel.common.dtos.EnrollDto;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.dtos.WithdrawDto;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.transactionservice.entity.OperationHistory;
 import org.ricramiel.transactionservice.entity.OutboxEvent;
 import org.ricramiel.transactionservice.mapper.TransactionMapper;
@@ -52,6 +53,7 @@ public class TransactionService {
         operationHistoryRepository.save(operationHistory);
 
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), "client");
+        TraceHeaders.applyCurrentTrace(kafkaDto);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
@@ -68,6 +70,7 @@ public class TransactionService {
         operationHistoryRepository.save(operationHistory);
 
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), transactionKafkaDto, LocalDateTime.now(), "client");
+        TraceHeaders.applyCurrentTrace(kafkaDto);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));

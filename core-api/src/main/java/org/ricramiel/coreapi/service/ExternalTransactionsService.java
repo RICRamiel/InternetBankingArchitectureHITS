@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.exceptions.status_code_exceptions.BadRequestException;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.entity.TransactionOperation;
 import org.ricramiel.coreapi.model.EnrollRequest;
@@ -65,6 +66,7 @@ public class ExternalTransactionsService {
         dto.setTransactionStatus(saved.getTransactionStatus());
         String dest = (!StringUtils.isEmpty(desti)) ? desti : "client";
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), dest);
+        TraceHeaders.applyCurrentTrace(kafkaDto);
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(ENROLL_TRANSACTION_TOPIC + "_" + dest);
         outboxEvent.setPayload(objectMapper.writeValueAsString(kafkaDto));
@@ -94,6 +96,7 @@ public class ExternalTransactionsService {
         dto.setId(saved.getId());
         dto.setTransactionStatus(saved.getTransactionStatus());
         EventTransactionDto kafkaDto = new EventTransactionDto(UUID.randomUUID(), dto, LocalDateTime.now(), desti);
+        TraceHeaders.applyCurrentTrace(kafkaDto);
         String dest = (!StringUtils.isEmpty(desti)) ? desti : "client";
         OutboxEvent outboxEvent = new OutboxEvent();
         outboxEvent.setOutboxTopic(WITHDRAW_TRANSACTION_TOPIC + "_" + dest);

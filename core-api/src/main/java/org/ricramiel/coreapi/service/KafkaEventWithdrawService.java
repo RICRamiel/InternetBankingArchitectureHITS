@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.enums.OutboxStatus;
+import org.ricramiel.common.tracing.MonitoringEventPublisher;
+import org.ricramiel.common.tracing.TraceContext;
+import org.ricramiel.common.tracing.TraceHeaders;
 import org.ricramiel.coreapi.entity.OutboxEvent;
 import org.ricramiel.coreapi.repository.OutboxRepository;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,6 +28,7 @@ public class KafkaEventWithdrawService {
     private final KafkaTemplate<String, EventTransactionDto> kafkaTemplate;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final MonitoringEventPublisher monitoringEventPublisher;
 
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
@@ -45,16 +49,34 @@ public class KafkaEventWithdrawService {
     }
 
     private boolean sendToKafka(OutboxEvent outboxEventEntity) {
+        long start = System.currentTimeMillis();
+        TraceContext.TraceState trace = TraceContext.currentOrNew();
         try {
+            EventTransactionDto event = objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class);
+            trace = TraceHeaders.openFrom(event);
+            event.setParentSpanId(trace.spanId());
             CompletableFuture<SendResult<String, EventTransactionDto>> sendResult = kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
-                    objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class));
+                    event);
             SendResult<String, EventTransactionDto> result = sendResult.get();
             log.info("Partition: {}", result.getRecordMetadata().partition());
+            monitoringEventPublisher.publish(monitoringEventPublisher.metric(
+                    trace, MonitoringEventPublisher.KAFKA_PRODUCER, "SEND", null,
+                    outboxEventEntity.getOutboxTopic(), System.currentTimeMillis() - start,
+                    200, false, null));
             return true;
         } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("Error sending event to Kafka: {}", e.getMessage());
+            monitoringEventPublisher.publish(monitoringEventPublisher.metric(
+                    trace, MonitoringEventPublisher.KAFKA_PRODUCER, "SEND", null,
+                    outboxEventEntity.getOutboxTopic(), System.currentTimeMillis() - start,
+                    500, true, e.getMessage()));
             return false;
+        } finally {
+            TraceContext.clear();
         }
     }
 }
