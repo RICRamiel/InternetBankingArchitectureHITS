@@ -21,6 +21,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RequiredArgsConstructor
 public class IdempotencyFilter<T extends HttpIdempotencyRecord> extends OncePerRequestFilter {
@@ -34,6 +37,7 @@ public class IdempotencyFilter<T extends HttpIdempotencyRecord> extends OncePerR
     );
 
     private final HttpIdempotencyStore<T> store;
+    private final ConcurrentMap<String, KeyLock> keyLocks = new ConcurrentHashMap<>();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -65,43 +69,73 @@ public class IdempotencyFilter<T extends HttpIdempotencyRecord> extends OncePerR
 
         String userScope = resolveUserScope(cachedRequest);
         String requestFingerprint = buildRequestFingerprint(cachedRequest, userScope);
+        String lockKey = composeLockKey(idempotencyKey, userScope);
 
-        Optional<T> existingRecord = store.find(idempotencyKey, userScope);
-        if (existingRecord.isPresent()) {
-            handleExistingRecord(existingRecord.get(), requestFingerprint, response);
-            return;
-        }
-
-        T record;
+        KeyLock keyLock = acquireLock(lockKey);
+        keyLock.lock();
         try {
-            record = store.save(store.createInProgress(idempotencyKey, userScope, requestFingerprint));
-        } catch (DataIntegrityViolationException ex) {
-            Optional<T> concurrentRecord = store.find(idempotencyKey, userScope);
-            if (concurrentRecord.isPresent()) {
-                handleExistingRecord(concurrentRecord.get(), requestFingerprint, response);
+            Optional<T> existingRecord = store.find(idempotencyKey, userScope);
+            if (existingRecord.isPresent()) {
+                handleExistingRecord(existingRecord.get(), requestFingerprint, response);
                 return;
             }
-            throw ex;
-        }
 
-        try {
-            filterChain.doFilter(cachedRequest, cachedResponse);
-
-            if (cachedResponse.getStatus() >= 500) {
-                store.delete(record);
-            } else {
-                record.setStatus(IdempotencyStatus.COMPLETED);
-                record.setResponseStatus(cachedResponse.getStatus());
-                record.setResponseContentType(cachedResponse.getContentType());
-                record.setResponseBody(cachedResponse.getContentAsByteArray());
-                store.save(record);
+            T record;
+            try {
+                record = store.save(store.createInProgress(idempotencyKey, userScope, requestFingerprint));
+            } catch (DataIntegrityViolationException ex) {
+                Optional<T> concurrentRecord = store.find(idempotencyKey, userScope);
+                if (concurrentRecord.isPresent()) {
+                    handleExistingRecord(concurrentRecord.get(), requestFingerprint, response);
+                    return;
+                }
+                throw ex;
             }
-        } catch (Exception ex) {
-            store.delete(record);
-            throw ex;
+
+            try {
+                filterChain.doFilter(cachedRequest, cachedResponse);
+
+                if (cachedResponse.getStatus() >= 500) {
+                    store.delete(record);
+                } else {
+                    record.setStatus(IdempotencyStatus.COMPLETED);
+                    record.setResponseStatus(cachedResponse.getStatus());
+                    record.setResponseContentType(cachedResponse.getContentType());
+                    record.setResponseBody(cachedResponse.getContentAsByteArray());
+                    store.save(record);
+                }
+            } catch (Exception ex) {
+                store.delete(record);
+                throw ex;
+            } finally {
+                cachedResponse.copyBodyToResponse();
+            }
         } finally {
-            cachedResponse.copyBodyToResponse();
+            keyLock.unlock();
+            releaseLock(lockKey, keyLock);
         }
+    }
+
+    private KeyLock acquireLock(String lockKey) {
+        return keyLocks.compute(lockKey, (key, existingLock) -> {
+            KeyLock lock = existingLock == null ? new KeyLock() : existingLock;
+            lock.retain();
+            return lock;
+        });
+    }
+
+    private void releaseLock(String lockKey, KeyLock lock) {
+        keyLocks.computeIfPresent(lockKey, (key, existingLock) -> {
+            if (existingLock != lock) {
+                return existingLock;
+            }
+
+            return lock.release() == 0 ? null : lock;
+        });
+    }
+
+    private String composeLockKey(String idempotencyKey, String userScope) {
+        return userScope.length() + ":" + userScope + ":" + idempotencyKey;
     }
 
     private void handleExistingRecord(T record,
@@ -178,5 +212,26 @@ public class IdempotencyFilter<T extends HttpIdempotencyRecord> extends OncePerR
 
     private String defaultString(String value) {
         return value == null ? "" : value;
+    }
+
+    private static final class KeyLock {
+        private final ReentrantLock lock = new ReentrantLock();
+        private int references;
+
+        private void lock() {
+            lock.lock();
+        }
+
+        private void unlock() {
+            lock.unlock();
+        }
+
+        private void retain() {
+            references++;
+        }
+
+        private int release() {
+            return --references;
+        }
     }
 }
