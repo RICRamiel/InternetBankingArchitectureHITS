@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.ricramiel.creditservice.dto.CreditRatingDTO;
 import org.ricramiel.creditservice.mapper.CreditRatingMapper;
 import org.ricramiel.creditservice.service.CreditRatingService;
+import org.springframework.data.repository.query.Param;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +22,7 @@ public class CreditRatingController {
 
     @PreAuthorize("hasRole('WORKER') OR @accessChecker.isSelf(#userId)")
     @GetMapping("/{userId}/get_by_user")
-    public CreditRatingDTO getByUserId(@PathVariable UUID userId){
+    public CreditRatingDTO getByUserId(@PathVariable("userId") @Param("userId") UUID userId){
         return CreditRatingMapper.toDto(creditRatingService.getByUserId(userId));
     }
 }

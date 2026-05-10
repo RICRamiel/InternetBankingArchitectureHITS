@@ -29,7 +29,7 @@ public class AccountEventListener {
         String errorMessage = null;
 
         try {
-            ChaosUtil.simulateKafkaProcessingError();
+            //ChaosUtil.simulateKafkaProcessingError();
 
             AccountUserMapping mapping = AccountUserMapping.builder()
                     .accountId(event.getCardAccountId())

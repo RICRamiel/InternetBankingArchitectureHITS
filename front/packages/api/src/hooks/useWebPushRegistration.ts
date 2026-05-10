@@ -1,10 +1,12 @@
 import type { FirebaseApp, FirebaseOptions } from "firebase/app";
 import { getApp, getApps, initializeApp } from "firebase/app";
+import type { MessagePayload } from "firebase/messaging";
 import {
   deleteToken,
   getMessaging,
   getToken,
   isSupported,
+  onMessage,
 } from "firebase/messaging";
 import { useEffect, useRef } from "react";
 
@@ -14,23 +16,129 @@ import {
   unregisterFcmToken,
 } from "../lib/notification-bff-http";
 
-/** Отдельное имя приложения, чтобы не смешивать с другим Firebase на странице и не брать «чужой» getApp(). */
 const FCM_APP_NAME = "fins-fcm-web";
+
+/** Keep payload title/body logic in sync with public/firebase-messaging-sw.js (onBackgroundMessage) in user and admin apps. */
+const FCM_DEFAULT_TITLE = "Уведомление";
+const FCM_OPERATION_PREFIX = "Операция ";
+
+function parseFcmNotificationPayload(
+  data: MessagePayload["data"],
+): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+  const raw =
+    typeof data.payload === "string"
+      ? data.payload
+      : typeof data.notification === "string"
+        ? data.notification
+        : null;
+  if (!raw) {
+    return null;
+  }
+  try {
+    const o = JSON.parse(raw) as unknown;
+    if (!o || typeof o !== "object") {
+      return null;
+    }
+    const rec = o as Record<string, unknown>;
+    if (typeof rec.id !== "string") {
+      return null;
+    }
+    return rec;
+  } catch {
+    return null;
+  }
+}
+
+interface FcmTitleBody {
+  title: string;
+  body: string;
+}
+
+function titleBodyFromFinsNotification(n: Record<string, unknown>): FcmTitleBody {
+  const type = n.type;
+  const title =
+    type && String(type).trim() ? String(type).trim() : FCM_DEFAULT_TITLE;
+  let text =
+    n.message && String(n.message).trim() ? String(n.message).trim() : "";
+  if (!text && n.amount != null) {
+    text = n.currency
+      ? String(n.amount) + " " + String(n.currency)
+      : String(n.amount);
+  }
+  if (!text) {
+    const op = n.operationId;
+    text = op
+      ? FCM_OPERATION_PREFIX + String(op)
+      : String(n.id != null ? n.id : "");
+  }
+  return { title, body: text };
+}
+
+interface FcmResolvedDisplay {
+  title: string;
+  body: string;
+  data: Record<string, string>;
+}
+
+function resolveFcmNotificationDisplay(
+  payload: MessagePayload,
+): FcmResolvedDisplay {
+  const note = payload.notification;
+  let title = note?.title ? String(note.title) : "";
+  let body = note?.body ? String(note.body) : "";
+
+  const parsed = parseFcmNotificationPayload(payload.data);
+  if (parsed) {
+    const tb = titleBodyFromFinsNotification(parsed);
+    if (!title) {
+      title = tb.title;
+    }
+    if (!body) {
+      body = tb.body;
+    }
+  }
+
+  if (!title) {
+    title = FCM_DEFAULT_TITLE;
+  }
+
+  const data: Record<string, string> = {};
+  if (payload.data) {
+    for (const [k, v] of Object.entries(payload.data)) {
+      data[k] = v;
+    }
+  }
+
+  return { title, body, data };
+}
+
+async function showFcmNotificationViaServiceWorker(
+  registration: ServiceWorkerRegistration,
+  payload: MessagePayload,
+): Promise<void> {
+  const { title, body, data } = resolveFcmNotificationDisplay(payload);
+  const notificationOpts: NotificationOptions = {
+    body: body || undefined,
+    data,
+  };
+  await registration.showNotification(title, notificationOpts);
+}
 
 function isViteDev(): boolean {
   return Boolean(
-    typeof import.meta !== "undefined" &&
-      (import.meta as { env?: { DEV?: boolean } }).env?.DEV,
+    typeof import.meta !== "undefined" && (import.meta as any).env?.DEV,
   );
 }
 
-export type UseWebPushRegistrationOptions = {
-  /** After session is established */
+export interface UseWebPushRegistrationOptions {
   enabled: boolean;
   firebaseOptions: FirebaseOptions;
   vapidKey: string;
   notificationsBaseUrl?: string;
-};
+}
 
 function trimOpt(s: string | undefined): string | undefined {
   if (s === undefined) {
@@ -40,7 +148,6 @@ function trimOpt(s: string | undefined): string | undefined {
   return t.length > 0 ? t : undefined;
 }
 
-/** Убираем пробелы/переносы из .env — иначе Installations / getToken дают invalid-argument. */
 function normalizeFirebaseOptions(o: FirebaseOptions): FirebaseOptions {
   return {
     ...o,
@@ -132,13 +239,10 @@ function logFirebaseError(context: string, e: unknown): void {
   const err = e as { code?: string; message?: string; name?: string };
   const msg = err?.message ?? String(e);
   const code = err?.code ?? err?.name ?? "";
-  console.warn(`[fins/push] ${context}${code ? ` [${code}]` : ""}:`, msg);
+  const suffix = code ? " [" + code + "]" : "";
+  console.warn("[fins/push] " + context + suffix + ":", msg);
 }
 
-/**
- * Registers FCM web token with BFF (notification-service) for native push.
- * Unregisters on unmount. No in-page messaging (background SW only).
- */
 export function useWebPushRegistration(
   options: UseWebPushRegistrationOptions,
 ): void {
@@ -171,6 +275,7 @@ export function useWebPushRegistration(
     warnMisconfiguredKeys(fo, vk);
 
     let cancelled = false;
+    let unsubscribeForeground: (() => void) | null = null;
 
     void (async () => {
       try {
@@ -235,11 +340,24 @@ export function useWebPushRegistration(
           }
           return;
         }
+
+        unsubscribeForeground = onMessage(messaging, (payload) => {
+          if (cancelled) {
+            return;
+          }
+          void showFcmNotificationViaServiceWorker(
+            registration,
+            payload,
+          ).catch(() => {});
+        });
+
         token = await getToken(messaging, {
           vapidKey: vk,
           serviceWorkerRegistration: registration,
         });
       } catch (e) {
+        unsubscribeForeground?.();
+        unsubscribeForeground = null;
         logFirebaseError(
           "getToken (проверьте Web API Key, VAPID и совпадение firebase-messaging-sw.js с .env)",
           e,
@@ -247,6 +365,8 @@ export function useWebPushRegistration(
         return;
       }
       if (cancelled || !token) {
+        unsubscribeForeground?.();
+        unsubscribeForeground = null;
         return;
       }
 
@@ -257,12 +377,13 @@ export function useWebPushRegistration(
           baseUrlRef.current,
         );
       } catch {
-        /* BFF / notification-service optional in dev */
       }
     })();
 
     return () => {
       cancelled = true;
+      unsubscribeForeground?.();
+      unsubscribeForeground = null;
       const t = registeredTokenRef.current;
       registeredTokenRef.current = null;
       if (!t) {
@@ -284,7 +405,6 @@ export function useWebPushRegistration(
         try {
           await unregisterFcmToken(t, baseUrlRef.current);
         } catch {
-          /* ignore */
         }
       })();
     };

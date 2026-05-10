@@ -11,6 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { currencyCodeToAmountSymbol } from "../../lib/currency-symbol";
 import styles from "./ExchangeRateWidget.module.css";
 
+const WIDGET_CURRENCIES: readonly CurrencyCode[] = ["USD", "EUR", "RUB"];
+
 const CHAR_TO_APP: Partial<Record<string, CurrencyCode>> = {
   USD: "USD",
   EUR: "EUR",
@@ -30,9 +32,6 @@ function labelForCharCode(charCode: string | undefined): string {
   return app ? currencyCodeToAmountSymbol(app) : charCode;
 }
 
-/**
- * Курсы валют с BFF → `GET /api/core-api/currency/all` (прокси на gateway).
- */
 export function ExchangeRateWidget() {
   const { data, isLoading, isError, refetch, isFetching } =
     useGetCurrencyListQuery();
@@ -42,13 +41,28 @@ export function ExchangeRateWidget() {
     if (!v) {
       return [];
     }
-    return Object.values(v).filter(
+    const raw = Object.values(v).filter(
       (x): x is CurrencyDto =>
         x != null &&
         typeof x === "object" &&
         typeof x.CharCode === "string" &&
         x.CharCode.length > 0,
     );
+    const byCode = new Map<string, CurrencyDto>();
+    for (const row of raw) {
+      const code = row.CharCode as CurrencyCode;
+      if (WIDGET_CURRENCIES.includes(code)) {
+        byCode.set(row.CharCode!, row);
+      }
+    }
+    // ЦБ-стиль: рубля нет в Valute, база — RUB; для конвертаций нужна строка 1 RUB = 1 RUB.
+    if (!byCode.has("RUB")) {
+      byCode.set("RUB", { CharCode: "RUB", Nominal: 1, Value: 1 });
+    }
+    return WIDGET_CURRENCIES.flatMap((code) => {
+      const row = byCode.get(code);
+      return row ? [row] : [];
+    });
   }, [data]);
 
   const [baseCode, setBaseCode] = useState<string | null>(null);

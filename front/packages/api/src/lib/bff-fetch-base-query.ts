@@ -8,11 +8,11 @@ import {
   resolveSharedBffCircuitBreaker,
   type BffClientCircuitBreakerOption,
 } from "./bff-circuit-breaker";
+import { BFF_IDEMPOTENCY_KEY_HEADER } from "./bff-idempotency-header";
 
 type FetchBaseQueryOptions = NonNullable<Parameters<typeof fetchBaseQuery>[0]>;
 
-/** Имя заголовка совпадает с BFF и API Gateway (Stripe / распространённая практика). */
-export const BFF_IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+export { BFF_IDEMPOTENCY_KEY_HEADER };
 
 export type BffClientOptions = {
   baseUrl: string;
@@ -20,7 +20,7 @@ export type BffClientOptions = {
   credentials?: RequestCredentials;
   prepareHeaders?: FetchBaseQueryOptions["prepareHeaders"];
   fetchFn?: FetchBaseQueryOptions["fetchFn"];
-  /** По умолчанию включён; `false` отключает circuit breaker для BFF. */
+  
   circuitBreaker?: BffClientCircuitBreakerOption;
 };
 

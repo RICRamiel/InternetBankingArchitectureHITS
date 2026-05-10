@@ -37,7 +37,6 @@ public class UsersController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('WORKER')")
     public List<UserDto> getAllUsers() {
         return usersService.getAllUsers().stream().map(userMapper::toDto).toList();
     }

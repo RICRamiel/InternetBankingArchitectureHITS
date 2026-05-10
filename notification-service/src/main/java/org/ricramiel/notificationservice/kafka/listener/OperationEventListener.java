@@ -35,7 +35,7 @@ public class OperationEventListener {
         String errorMessage = null;
 
         try {
-            ChaosUtil.simulateKafkaProcessingError();
+            //ChaosUtil.simulateKafkaProcessingError();
 
             TransactionKafkaDto data = event.getData();
             if (data == null) {

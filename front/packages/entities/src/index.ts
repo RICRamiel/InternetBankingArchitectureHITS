@@ -15,6 +15,7 @@ export {
   mockRateFromTo,
 } from "./lib/mock-exchange-rates";
 export { sortAccountsForIndex } from "./lib/sort-accounts-for-index";
+export { applyHiddenAccountsPreference } from "./lib/apply-hidden-accounts-preference";
 
 export {
   CardAccountInfo,

@@ -83,4 +83,10 @@ public class CardAccountServiceImpl {
     private boolean checkUnicNameByUser(UUID userId, String name) {
         return cardAccountRepository.countByUserIdAndName(userId, name) <= 0;
     }
+
+    public CardAccount setMainAccount(UUID accountId) {
+        CardAccount account = cardAccountRepository.findById(accountId).orElseThrow(() -> new NotFoundException("Account not found"));
+        account.setIsMain((account.getIsMain() != null) && account.getIsMain());
+        return account;
+    }
 }

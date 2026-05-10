@@ -8,9 +8,15 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
+
+@Slf4j
 @Component
 public class TokenValidationFilter extends AbstractGatewayFilterFactory<TokenValidationFilter.Config> {
 
@@ -54,10 +60,42 @@ public class TokenValidationFilter extends AbstractGatewayFilterFactory<TokenVal
                     .toBodilessEntity()
                     .flatMap(response -> chain.filter(exchange))
                     .onErrorResume(e -> {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-                        return exchange.getResponse().setComplete();
+                        log.warn("Token validation failed: {}", e.toString());
+
+                        var response = exchange.getResponse();
+                        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+                        if (e instanceof WebClientResponseException upstreamError) {
+                            response.setStatusCode(upstreamError.getStatusCode());
+                            String body = upstreamError.getResponseBodyAsString(StandardCharsets.UTF_8);
+                            return response.writeWith(Mono.just(response.bufferFactory().wrap("""
+                                    {"message":"Token validation endpoint rejected the request","upstreamStatus":%d,"upstreamBody":%s}
+                                    """.formatted(
+                                            upstreamError.getRawStatusCode(),
+                                            jsonString(body)
+                                    ).getBytes(StandardCharsets.UTF_8))));
+                        }
+
+                        response.setStatusCode(HttpStatus.BAD_GATEWAY);
+                        return response.writeWith(Mono.just(response.bufferFactory().wrap("""
+                                {"message":"Token validation endpoint is unavailable","error":%s}
+                                """.formatted(jsonString(e.getMessage())).getBytes(StandardCharsets.UTF_8))));
                     });
         };
+    }
+
+    private static String jsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
+
+        return "\"" + value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
+                + "\"";
     }
 
     @Setter

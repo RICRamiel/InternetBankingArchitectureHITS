@@ -36,7 +36,7 @@ export type CreditRuleFormInput = {
 };
 
 export function validateCreditRuleForm(
-    input: CreditRuleFormInput,
+  input: CreditRuleFormInput,
 ): FormValidationResult<CreditRuleDto> {
   const errors: FormFieldErrors[] = [];
   const ruleName = trimString(input.ruleName);
@@ -70,7 +70,7 @@ export function validateCreditRuleForm(
       errors.push(fieldError("collectionPeriodSeconds", sec.message));
     } else if (!Number.isInteger(sec.value)) {
       errors.push(
-          fieldError("collectionPeriodSeconds", "Укажите целое число секунд"),
+        fieldError("collectionPeriodSeconds", "Укажите целое число секунд"),
       );
     } else {
       collectionPeriodSeconds = sec.value;
@@ -111,39 +111,73 @@ export type CreditCreateFormInput = {
   moneyCurrency?: unknown;
 };
 
-
 export function validateCreditCreateForm(
-    input: CreditCreateFormInput,
+  input: CreditCreateFormInput,
 ): FormValidationResult<CreditCreateModelDto> {
   const errors: FormFieldErrors[] = [];
   if (!isNonEmptyId(input.userId)) {
-    errors.push(fieldError("userId", "Укажите пользователя"));
+    errors.push(fieldError("userId", "Signed-in user is required"));
   }
   if (!isNonEmptyId(input.cardAccount)) {
-    errors.push(fieldError("cardAccount", "Укажите счёт"));
+    errors.push(fieldError("cardAccount", "Pick a debit account"));
   }
   if (!isNonEmptyId(input.creditRuleId)) {
-    errors.push(fieldError("creditRuleId", "Выберите правило"));
+    errors.push(fieldError("creditRuleId", "Pick a credit rule"));
   }
-  const valueParsed = parseStrictPositiveNumber(input.moneyValue);
-  if (!valueParsed.ok) {
-    errors.push(fieldError("money.value", valueParsed.message));
+
+  let moneyValue: number | undefined;
+  if (typeof input.moneyValue === "number") {
+    if (!Number.isFinite(input.moneyValue) || input.moneyValue <= 0) {
+      errors.push(
+        fieldError("money.value", "Principal must be a positive number"),
+      );
+    } else {
+      moneyValue = input.moneyValue;
+    }
+  } else if (typeof input.moneyValue === "string") {
+    const t = input.moneyValue.trim();
+    if (t.length === 0) {
+      errors.push(fieldError("money.value", "Principal is required"));
+    } else {
+      const n = Number(t);
+      if (!Number.isFinite(n) || n <= 0) {
+        errors.push(
+          fieldError("money.value", "Principal must be a positive number"),
+        );
+      } else {
+        moneyValue = n;
+      }
+    }
+  } else if (input.moneyValue !== undefined && input.moneyValue !== null) {
+    errors.push(
+      fieldError("money.value", "Principal must be a positive number"),
+    );
+  } else {
+    errors.push(fieldError("money.value", "Principal is required"));
   }
+
   const curRaw = trimString(input.moneyCurrency);
   const currency = CURRENCIES.has(curRaw as Currency)
-      ? (curRaw as Currency)
-      : undefined;
+    ? (curRaw as Currency)
+    : undefined;
   if (currency === undefined) {
-    errors.push(fieldError("money.currency", "Выберите валюту"));
+    errors.push(
+      fieldError(
+        "money.currency",
+        "Currency comes from the account — pick an account first",
+      ),
+    );
   }
   if (errors.length > 0) {
     return validationFailed(mergeFormFieldErrors(...errors));
   }
-  if (!valueParsed.ok) {
-    return validationFailed(fieldError("money.value", valueParsed.message));
+  if (moneyValue === undefined || currency === undefined) {
+    return validationFailed(
+      fieldError("money.value", "Principal must be a positive number"),
+    );
   }
   const money: MoneyValueDto = {
-    value: valueParsed.value,
+    value: moneyValue,
     currency,
   };
   return validationOk({

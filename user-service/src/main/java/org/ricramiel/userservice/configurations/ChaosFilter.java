@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.Set;
 
-@Component
 @Order(1)
 public class ChaosFilter implements Filter {
     private static final Set<String> SWAGGER_PREFIXES = Set.of(

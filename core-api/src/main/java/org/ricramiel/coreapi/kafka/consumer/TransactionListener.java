@@ -37,7 +37,7 @@ public class TransactionListener {
         String errorMessage = null;
 
         try {
-            ChaosUtil.simulateKafkaProcessingError();
+            //ChaosUtil.simulateKafkaProcessingError();
             if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
                 TransactionKafkaDto dto = eventTransactionDto.getData();
                 log.info("transaction listener received data with destination: {}", dto.getAction());

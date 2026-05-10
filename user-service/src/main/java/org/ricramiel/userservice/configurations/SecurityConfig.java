@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/auth/oauth2/**",
                                 "/oauth2/**",
-                                "/internal/**")
+                                "/internal/**",
+                            "/error")
                         .permitAll()
                         .anyRequest().authenticated()
                 )

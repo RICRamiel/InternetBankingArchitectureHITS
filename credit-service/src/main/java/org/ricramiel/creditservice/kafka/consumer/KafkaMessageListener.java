@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.ricramiel.common.dtos.EventTransactionDto;
 import org.ricramiel.common.dtos.TransactionKafkaDto;
 import org.ricramiel.common.enums.TransactionStatus;
+import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.tracing.MonitoringEventPublisher;
 import org.ricramiel.common.tracing.TraceContext;
 import org.ricramiel.common.tracing.TraceHeaders;
@@ -57,12 +58,48 @@ public class KafkaMessageListener {
         String errorMessage = null;
 
         try {
-            ChaosUtil.simulateKafkaProcessingError();
+            //ChaosUtil.simulateKafkaProcessingError();
             if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
                 TransactionKafkaDto transactionKafkaDto = eventTransactionDto.getData();
 
                 if (!Objects.equals(eventTransactionDto.getDestination(), type)) {
                     log.error("Received unexpected withdraw event with destination {}", eventTransactionDto.getDestination());
+                    acknowledgment.acknowledge();
+                    return;
+                }
+
+                if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
+                        && transactionKafkaDto.getTransactionType().equals(TransactionType.ENROLLMENT)
+                        && transactionKafkaDto.getSourceId() != null
+                        && creditTempRepository.existsById(transactionKafkaDto.getSourceId())) {
+
+                    CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
+
+                    if (!creditRepository.existsByCardAccount(creditTemp.getCardAccount())) {
+                        Credit credit = Credit.builder()
+                                .creditRule(creditTemp.getCreditRule())
+                                .initialDebt(creditTemp.getInitialDebt())
+                                .interestDebtSum(creditTemp.getInterestDebtSum())
+                                .lastInterestUpdate(LocalDateTime.now())
+                                .currency(creditTemp.getCurrency())
+                                .cardAccount(creditTemp.getCardAccount())
+                                .currentDebtSum(creditTemp.getInitialDebt())
+                                .userId(creditTemp.getUserId())
+                                .build();
+
+                        credit = creditRepository.save(credit);
+
+                        CreditRating creditRating = new CreditRating();
+                        creditRating.setRating(BigDecimal.valueOf(100));
+                        creditRating.setUserId(credit.getUserId());
+                        creditRatingRepository.save(creditRating);
+                    }
+
+                    creditTempRepository.deleteById(creditTemp.getId());
+
+                    IdempotencyKey idempotencyKey = IdempotencyKey.builder().id(eventTransactionDto.getId()).build();
+                    idempotencyKeyRepository.save(idempotencyKey);
+
                     acknowledgment.acknowledge();
                     return;
                 }

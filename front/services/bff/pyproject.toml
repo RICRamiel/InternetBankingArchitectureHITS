@@ -10,6 +10,7 @@ dependencies = [
   "httpx>=0.28.1",
   "attrs>=24.0",
   "pydantic-settings>=2.7.0",
+  "python-dateutil>=2.9.0",
 ]
 
 [project.optional-dependencies]

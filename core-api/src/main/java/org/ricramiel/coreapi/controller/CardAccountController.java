@@ -57,4 +57,9 @@ public class CardAccountController {
     public ResponseEntity<Boolean> closeAccount(@PathVariable("accountId") @Param("accountId") UUID accountId) {
         return ResponseEntity.ok(cardAccountService.closeAccount(accountId));
     }
+
+    @PostMapping("/{accountId}/set-main")
+    public ResponseEntity<CardAccount> setMainAccount(@PathVariable("accountId") @Param("accountId") UUID accountId){
+        return ResponseEntity.ok(cardAccountService.setMainAccount(accountId));
+    }
 }

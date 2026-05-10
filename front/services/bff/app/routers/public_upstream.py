@@ -801,7 +801,7 @@ async def get_currency_list(
     if ctx.record is None or user is None:
         return _unauth()
     r = await ctx.call_upstream(
-        lambda c: upstream_get_currency_list.asyncio_detailed(client=c)
+        lambda c: upstream_get_currency_list(client=c)
     )
     if r is None:
         return _unauth()

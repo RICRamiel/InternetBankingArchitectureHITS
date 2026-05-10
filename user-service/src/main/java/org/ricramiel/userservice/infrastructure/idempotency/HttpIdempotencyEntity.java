@@ -29,13 +29,13 @@ public class HttpIdempotencyEntity implements HttpIdempotencyRecord {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "idempotency_key", nullable = false, length = 200)
+    @Column(name = "idempotency_key", nullable = false, length = 4000)
     private String idempotencyKey;
 
-    @Column(name = "user_scope", nullable = false, length = 200)
+    @Column(name = "user_scope", nullable = false, length = 4000)
     private String userScope;
 
-    @Column(name = "request_fingerprint", nullable = false, length = 64)
+    @Column(name = "request_fingerprint", nullable = false, length = 128)
     private String requestFingerprint;
 
     @Enumerated(EnumType.STRING)

@@ -12,7 +12,7 @@ from app.circuit_breaker import AsyncCircuitBreaker, CircuitBreakerOpenError
 from app.simulate_random_error_middleware import SimulateRandomErrorMiddleware
 from app.config import get_settings
 from app.errors import bff_error_response
-from app.routers import notifications_proxy, public, sso, ws_transactions
+from app.routers import monitoring_proxy, notifications_proxy, public, sso, ws_transactions
 from app.upstream_runtime import (
     aclose_upstream_gateway_clients,
     build_upstream_http_clients,
@@ -114,6 +114,7 @@ api = APIRouter(prefix="/api")
 api.include_router(sso.router)
 api.include_router(public.router)
 api.include_router(notifications_proxy.router)
+api.include_router(monitoring_proxy.router)
 app.include_router(api)
 app.include_router(ws_transactions.router, prefix="/api")
 if SSO_STATIC_DIR.is_dir() and any(SSO_STATIC_DIR.iterdir()):

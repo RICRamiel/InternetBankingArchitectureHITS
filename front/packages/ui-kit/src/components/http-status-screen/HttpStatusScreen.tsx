@@ -6,8 +6,9 @@ export type HttpStatusScreenProps = {
   code: string;
   actionText: string;
   onAction: () => void;
-  /** Доп. текст (например при редиректе с состоянием ошибки API). */
   message?: string;
+  /** e.g. React error boundary stack / message */
+  detailText?: string;
 };
 
 export function HttpStatusScreen({
@@ -15,7 +16,9 @@ export function HttpStatusScreen({
   actionText,
   onAction,
   message,
+  detailText,
 }: HttpStatusScreenProps) {
+  const bodyClass = "text-info color-info";
   return (
     <main
       className="bg-background"
@@ -30,7 +33,7 @@ export function HttpStatusScreen({
         <>
           {message !== undefined && message.length > 0 ? (
             <p
-              className="text-muted"
+              className={bodyClass}
               style={{
                 margin: 0,
                 marginBottom: "1rem",
@@ -40,6 +43,24 @@ export function HttpStatusScreen({
             >
               {message}
             </p>
+          ) : null}
+          {detailText !== undefined && detailText.length > 0 ? (
+            <pre
+              className={bodyClass}
+              style={{
+                margin: 0,
+                marginBottom: "1rem",
+                textAlign: "left",
+                maxWidth: "28rem",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                fontFamily: "inherit",
+                fontSize: "0.8125rem",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {detailText}
+            </pre>
           ) : null}
           <LinkButton
             text={actionText}

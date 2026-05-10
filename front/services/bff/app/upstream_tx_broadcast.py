@@ -91,7 +91,7 @@ async def broadcast_newest_upstream_transaction(
     conn = SimpleNamespace(app=app)
     ctx = UpstreamContext(conn, settings, session_cookie, rec)
     r = await ctx.call_upstream(
-        lambda c, aid=account_id: upstream_list_tx.asyncio_detailed(
+        lambda c, aid=account_id: upstream_list_tx(
             client=c, account_id=aid, page_index=0, page_size=50
         )
     )

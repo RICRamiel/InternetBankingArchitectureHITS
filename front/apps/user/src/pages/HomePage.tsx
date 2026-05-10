@@ -1,7 +1,9 @@
 import {
   mapCardAccountFromDto,
+  useGetPreferencesQuery,
   useGetUserCardAccountsQuery,
   useGetUserQuery,
+  type CardAccountEntity,
 } from "@fins/api";
 import { LinkButton, OnBlurContainer, RectSpaceLayout } from "@fins/ui-kit";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +12,7 @@ import { AccountCreateForm } from "../features/account-create-form/AccountCreate
 import {
   AccountGrid,
   AccountTransactionsPanel,
+  applyHiddenAccountsPreference,
   CardAccountInfo,
   ExchangeRateWidget,
   sortAccountsForIndex,
@@ -23,11 +26,15 @@ export function HomePage() {
     { userId, pageIndex: 0, pageSize: 100 },
     { skip: !userId },
   );
+  const { data: prefs } = useGetPreferencesQuery(undefined, {
+    skip: !userId,
+  });
 
-  const accounts = useMemo(() => {
+  const accounts = useMemo((): CardAccountEntity[] => {
     const entities = (page?.content ?? []).map(mapCardAccountFromDto);
-    return sortAccountsForIndex(entities);
-  }, [page?.content]);
+    const sorted = sortAccountsForIndex(entities);
+    return applyHiddenAccountsPreference(sorted, prefs?.hiddenAccounts);
+  }, [page?.content, prefs?.hiddenAccounts]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bottomMode, setBottomMode] = useState<BottomLeftMode>("accounts");

@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.constants import WAIT_IN_MILLIS
 
@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     )
     session_secret: str = "dev-change-me"
     session_cookie_name: str = "fins_session"
+    # registrable domain: «example.com» — cookie на всех поддоменах (user., admin., …).
+    # Не задавать в локалке для host-only кук; на проде — совпадать с зоной всех SPA.
+    session_cookie_domain: str | None = None
     cookie_secure: bool = False
     cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     session_max_age_seconds: int = 60 * 60 * 24 * 7
@@ -33,6 +36,7 @@ class Settings(BaseSettings):
     use_mock_bank_treasury: bool = True
     wait_in_millis: int = Field(default=WAIT_IN_MILLIS, ge=0)
     notification_service_base_url: str | None = None
+    monitoring_service_base_url: str | None = None
     notification_sse_mock_enabled: bool = True
     notification_sse_mock_interval_seconds: int = Field(default=60, ge=1)
     simulate_random_errors: bool = False
@@ -44,6 +48,14 @@ class Settings(BaseSettings):
     notification_circuit_breaker_enabled: bool = True
     notification_circuit_failure_threshold: int = Field(default=5, ge=1)
     notification_circuit_open_seconds: float = Field(default=30.0, ge=0.5)
+
+    @field_validator("session_cookie_domain", mode="before")
+    @classmethod
+    def _normalize_session_cookie_domain(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip().removeprefix(".").strip()
+        return s if s else None
 
     @property
     def use_upstream(self) -> bool:
@@ -63,14 +75,12 @@ class Settings(BaseSettings):
 
     @property
     def use_notification_sse_mock(self) -> bool:
-        """Тестовый SSE без notification-service (если не включён реальный прокси)."""
         return bool(
             self.notification_sse_mock_enabled and not self.use_notification_proxy
         )
 
     @property
     def simulate_random_errors_enabled(self) -> bool:
-        """Случайные 500 только в режиме мок-банка; при реальном upstream отключено."""
         if self.use_upstream:
             return False
         return self.simulate_random_errors

@@ -35,7 +35,7 @@ public class CreditMapper {
         }
 
         CreditAnswerDTO creditAnswerDTO = new CreditAnswerDTO();
-        creditAnswerDTO.setId(null);
+        creditAnswerDTO.setId(credit.getId());
         creditAnswerDTO.setLastInterestUpdate(credit.getLastInterestUpdate());
         creditAnswerDTO.setUserId(credit.getUserId());
         creditAnswerDTO.setCardAccount(credit.getCardAccount());
