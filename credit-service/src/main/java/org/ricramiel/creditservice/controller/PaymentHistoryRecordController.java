@@ -27,7 +27,7 @@ public class PaymentHistoryRecordController {
         return PaymentHistoryRecordMapper.toDtoList(paymentHistoryRecordService.getHistoryByUserId(userId));
     }
 
-    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isAccountOwner(#cardAccountId)")
     @GetMapping("/{cardAccountId}/find_by_card_account_id")
     public List<PaymentHistoryRecordDTO> findByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId){
         return PaymentHistoryRecordMapper.toDtoList(paymentHistoryRecordService.getHistoryByCardAccount(cardAccountId));

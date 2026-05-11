@@ -3,6 +3,11 @@ import {
   type BffCircuitBreaker,
   getSharedBffCircuitBreaker,
 } from "./bff-circuit-breaker";
+import {
+  createFrontendTrace,
+  recordFrontendMetric,
+  tracedHeaders,
+} from "./frontend-monitoring";
 
 export function defaultNotificationsBffBaseUrl(): string {
   return "/api/notifications";
@@ -27,27 +32,62 @@ function recordNotificationResponse(
   });
 }
 
+function withTrace(init: RequestInit, trace: { traceId: string; spanId: string }): RequestInit {
+  return {
+    ...init,
+    headers: tracedHeaders(init.headers, trace),
+  };
+}
+
+function recordNotificationMetric(
+  trace: { traceId: string; spanId: string },
+  baseUrl: string,
+  path: string,
+  method: string,
+  startedAt: number,
+  statusCode: number,
+  isError: boolean,
+  errorMessage?: string | null,
+): void {
+  recordFrontendMetric({
+    traceId: trace.traceId,
+    spanId: trace.spanId,
+    operationType: "FRONTEND_HTTP",
+    method,
+    endpoint: joinUrl(baseUrl, path),
+    durationMs: Math.round(performance.now() - startedAt),
+    statusCode,
+    isError,
+    errorMessage,
+  });
+}
+
 export async function fetchUnreadNotifications(
   baseUrl: string = defaultNotificationsBffBaseUrl(),
   init?: RequestInit,
 ): Promise<Notification[]> {
   const breaker = getSharedBffCircuitBreaker();
+  const trace = createFrontendTrace();
+  const startedAt = performance.now();
   if (breaker?.shouldBlock()) {
+    recordNotificationMetric(trace, baseUrl, "/unread", "GET", startedAt, 503, true, "BFF_CIRCUIT_OPEN");
     throw new Error("BFF_CIRCUIT_OPEN");
   }
   let r: Response;
   try {
-    r = await fetch(joinUrl(baseUrl, "/unread"), {
+    r = await fetch(joinUrl(baseUrl, "/unread"), withTrace({
       credentials: "include",
       ...init,
-    });
+    }, trace));
   } catch (err) {
     breaker?.recordFromFetchBaseResult({
       error: { status: "FETCH_ERROR", error: String(err) },
     });
+    recordNotificationMetric(trace, baseUrl, "/unread", "GET", startedAt, 0, true, String(err));
     throw err;
   }
   recordNotificationResponse(breaker, r);
+  recordNotificationMetric(trace, baseUrl, "/unread", "GET", startedAt, r.status, !r.ok, r.ok ? null : `HTTP ${r.status}`);
   if (!r.ok) {
     throw new Error(`notifications unread HTTP ${r.status}`);
   }
@@ -59,22 +99,27 @@ export async function fetchAllNotifications(
   init?: RequestInit,
 ): Promise<Notification[]> {
   const breaker = getSharedBffCircuitBreaker();
+  const trace = createFrontendTrace();
+  const startedAt = performance.now();
   if (breaker?.shouldBlock()) {
+    recordNotificationMetric(trace, baseUrl, "/all", "GET", startedAt, 503, true, "BFF_CIRCUIT_OPEN");
     throw new Error("BFF_CIRCUIT_OPEN");
   }
   let r: Response;
   try {
-    r = await fetch(joinUrl(baseUrl, "/all"), {
+    r = await fetch(joinUrl(baseUrl, "/all"), withTrace({
       credentials: "include",
       ...init,
-    });
+    }, trace));
   } catch (err) {
     breaker?.recordFromFetchBaseResult({
       error: { status: "FETCH_ERROR", error: String(err) },
     });
+    recordNotificationMetric(trace, baseUrl, "/all", "GET", startedAt, 0, true, String(err));
     throw err;
   }
   recordNotificationResponse(breaker, r);
+  recordNotificationMetric(trace, baseUrl, "/all", "GET", startedAt, r.status, !r.ok, r.ok ? null : `HTTP ${r.status}`);
   if (!r.ok) {
     throw new Error(`notifications all HTTP ${r.status}`);
   }
@@ -94,25 +139,30 @@ export async function registerFcmToken(
   init?: RequestInit,
 ): Promise<void> {
   const breaker = getSharedBffCircuitBreaker();
+  const trace = createFrontendTrace();
+  const startedAt = performance.now();
   if (breaker?.shouldBlock()) {
+    recordNotificationMetric(trace, baseUrl, "/fcm/token", "POST", startedAt, 503, true, "BFF_CIRCUIT_OPEN");
     throw new Error("BFF_CIRCUIT_OPEN");
   }
   let r: Response;
   try {
-    r = await fetch(joinUrl(baseUrl, "/fcm/token"), {
+    r = await fetch(joinUrl(baseUrl, "/fcm/token"), withTrace({
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       signal: init?.signal,
-    });
+    }, trace));
   } catch (err) {
     breaker?.recordFromFetchBaseResult({
       error: { status: "FETCH_ERROR", error: String(err) },
     });
+    recordNotificationMetric(trace, baseUrl, "/fcm/token", "POST", startedAt, 0, true, String(err));
     throw err;
   }
   recordNotificationResponse(breaker, r);
+  recordNotificationMetric(trace, baseUrl, "/fcm/token", "POST", startedAt, r.status, !r.ok, r.ok ? null : `HTTP ${r.status}`);
   if (!r.ok) {
     throw new Error(`notifications FCM register HTTP ${r.status}`);
   }
@@ -124,24 +174,29 @@ export async function unregisterFcmToken(
   init?: RequestInit,
 ): Promise<void> {
   const breaker = getSharedBffCircuitBreaker();
+  const trace = createFrontendTrace();
+  const startedAt = performance.now();
   if (breaker?.shouldBlock()) {
+    recordNotificationMetric(trace, baseUrl, "/fcm/token", "DELETE", startedAt, 503, true, "BFF_CIRCUIT_OPEN");
     throw new Error("BFF_CIRCUIT_OPEN");
   }
   const q = new URLSearchParams({ arg0: fcmToken });
   let r: Response;
   try {
-    r = await fetch(`${joinUrl(baseUrl, "/fcm/token")}?${q.toString()}`, {
+    r = await fetch(`${joinUrl(baseUrl, "/fcm/token")}?${q.toString()}`, withTrace({
       method: "DELETE",
       credentials: "include",
       signal: init?.signal,
-    });
+    }, trace));
   } catch (err) {
     breaker?.recordFromFetchBaseResult({
       error: { status: "FETCH_ERROR", error: String(err) },
     });
+    recordNotificationMetric(trace, baseUrl, "/fcm/token", "DELETE", startedAt, 0, true, String(err));
     throw err;
   }
   recordNotificationResponse(breaker, r);
+  recordNotificationMetric(trace, baseUrl, "/fcm/token", "DELETE", startedAt, r.status, !r.ok, r.ok ? null : `HTTP ${r.status}`);
   if (!r.ok) {
     throw new Error(`notifications FCM unregister HTTP ${r.status}`);
   }
@@ -153,23 +208,28 @@ export async function markNotificationRead(
   init?: RequestInit,
 ): Promise<void> {
   const breaker = getSharedBffCircuitBreaker();
+  const trace = createFrontendTrace();
+  const startedAt = performance.now();
   if (breaker?.shouldBlock()) {
+    recordNotificationMetric(trace, baseUrl, "/{id}/read", "PUT", startedAt, 503, true, "BFF_CIRCUIT_OPEN");
     throw new Error("BFF_CIRCUIT_OPEN");
   }
   let r: Response;
   try {
-    r = await fetch(joinUrl(baseUrl, `/${notificationId}/read`), {
+    r = await fetch(joinUrl(baseUrl, `/${notificationId}/read`), withTrace({
       method: "PUT",
       credentials: "include",
       ...init,
-    });
+    }, trace));
   } catch (err) {
     breaker?.recordFromFetchBaseResult({
       error: { status: "FETCH_ERROR", error: String(err) },
     });
+    recordNotificationMetric(trace, baseUrl, "/{id}/read", "PUT", startedAt, 0, true, String(err));
     throw err;
   }
   recordNotificationResponse(breaker, r);
+  recordNotificationMetric(trace, baseUrl, `/${notificationId}/read`, "PUT", startedAt, r.status, !r.ok, r.ok ? null : `HTTP ${r.status}`);
   if (!r.ok) {
     throw new Error(`notifications mark read HTTP ${r.status}`);
   }

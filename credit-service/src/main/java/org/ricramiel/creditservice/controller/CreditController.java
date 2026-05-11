@@ -50,13 +50,13 @@ public class CreditController {
         return ResponseEntity.ok(CreditMapper.toListDto(creditService.getByUserId(userId)));
     }
 
-    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isAccountOwner(#cardAccountId)")
     @GetMapping("/{cardAccountId}/get_by_card_account")
     public ResponseEntity<CreditAnswerDTO> getByCardAccountId(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId) {
         return ResponseEntity.ok(CreditMapper.toAnswerDto(creditService.getByCardAccountId(cardAccountId)));
     }
 
-    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isOwner(#cardAccountId)")
+    @PreAuthorize("hasRole('WORKER') OR @accessChecker.isAccountOwner(#cardAccountId)")
     @PostMapping("/{cardAccountId}/enrollment")
     public ResponseEntity<CreditAnswerDTO> makeEnrollment(@PathVariable("cardAccountId") @Param("cardAccountId") UUID cardAccountId,
                                                           @RequestParam("money") BigDecimal money) {

@@ -39,7 +39,7 @@ export function formatCreditRatingLabel(rating: number | undefined): string {
   if (rating === undefined || Number.isNaN(rating)) {
     return "—";
   }
-  return `${rating.toFixed(1)}/10`;
+  return rating.toFixed(2);
 }
 
 export type CreditEntity = {

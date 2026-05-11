@@ -9,6 +9,15 @@ import {
   type BffClientCircuitBreakerOption,
 } from "./bff-circuit-breaker";
 import { BFF_IDEMPOTENCY_KEY_HEADER } from "./bff-idempotency-header";
+import {
+  attachTraceHeaders,
+  configureFrontendMonitoring,
+  createFrontendTrace,
+  recordFrontendMetric,
+  requestEndpoint,
+  requestMethod,
+  type FrontendMonitoringOptions,
+} from "./frontend-monitoring";
 
 type FetchBaseQueryOptions = NonNullable<Parameters<typeof fetchBaseQuery>[0]>;
 
@@ -22,6 +31,7 @@ export type BffClientOptions = {
   fetchFn?: FetchBaseQueryOptions["fetchFn"];
   
   circuitBreaker?: BffClientCircuitBreakerOption;
+  monitoring?: FrontendMonitoringOptions | false;
 };
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -37,7 +47,10 @@ export function createBffFetchBaseQuery(
     prepareHeaders,
     fetchFn,
     circuitBreaker: circuitBreakerOpt,
+    monitoring,
   } = options;
+
+  configureFrontendMonitoring(monitoring, baseUrl);
 
   const mergedPrepareHeaders: FetchBaseQueryOptions["prepareHeaders"] = (
     headers,
@@ -61,7 +74,24 @@ export function createBffFetchBaseQuery(
 
   return async (args, api, extraOptions) => {
     const breaker = resolveSharedBffCircuitBreaker(circuitBreakerOpt);
+    const trace = createFrontendTrace();
+    const tracedArgs = attachTraceHeaders(args, trace);
+    const startedAt = performance.now();
+    const endpoint = requestEndpoint(args);
+    const method = requestMethod(args);
+
     if (breaker?.shouldBlock()) {
+      recordFrontendMetric({
+        traceId: trace.traceId,
+        spanId: trace.spanId,
+        operationType: "FRONTEND_HTTP",
+        method,
+        endpoint,
+        durationMs: Math.round(performance.now() - startedAt),
+        statusCode: 503,
+        isError: true,
+        errorMessage: "BFF_CIRCUIT_OPEN",
+      });
       return {
         error: {
           status: "CUSTOM_ERROR",
@@ -73,8 +103,21 @@ export function createBffFetchBaseQuery(
         },
       };
     }
-    const result = await inner(args, api, extraOptions);
+    const result = await inner(tracedArgs, api, extraOptions);
     breaker?.recordFromFetchBaseResult(result);
+    const error = "error" in result ? result.error : undefined;
+    const status = error?.status ?? 200;
+    recordFrontendMetric({
+      traceId: trace.traceId,
+      spanId: trace.spanId,
+      operationType: "FRONTEND_HTTP",
+      method,
+      endpoint,
+      durationMs: Math.round(performance.now() - startedAt),
+      statusCode: typeof status === "number" ? status : 0,
+      isError: error !== undefined,
+      errorMessage: error !== undefined ? String(error.status) : null,
+    });
     return result;
   };
 }

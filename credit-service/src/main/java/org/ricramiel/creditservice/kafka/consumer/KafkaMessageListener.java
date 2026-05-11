@@ -9,7 +9,6 @@ import org.ricramiel.common.enums.TransactionType;
 import org.ricramiel.common.tracing.MonitoringEventPublisher;
 import org.ricramiel.common.tracing.TraceContext;
 import org.ricramiel.common.tracing.TraceHeaders;
-import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.creditservice.infrastructure.CreditServiceImpl;
 import org.ricramiel.creditservice.model.Credit;
 import org.ricramiel.creditservice.model.CreditRating;
@@ -58,7 +57,6 @@ public class KafkaMessageListener {
         String errorMessage = null;
 
         try {
-            //ChaosUtil.simulateKafkaProcessingError();
             if (!idempotencyKeyRepository.existsById(eventTransactionDto.getId())) {
                 TransactionKafkaDto transactionKafkaDto = eventTransactionDto.getData();
 
@@ -68,34 +66,8 @@ public class KafkaMessageListener {
                     return;
                 }
 
-                if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-                        && transactionKafkaDto.getTransactionType().equals(TransactionType.ENROLLMENT)
-                        && transactionKafkaDto.getSourceId() != null
-                        && creditTempRepository.existsById(transactionKafkaDto.getSourceId())) {
-
-                    CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
-
-                    if (!creditRepository.existsByCardAccount(creditTemp.getCardAccount())) {
-                        Credit credit = Credit.builder()
-                                .creditRule(creditTemp.getCreditRule())
-                                .initialDebt(creditTemp.getInitialDebt())
-                                .interestDebtSum(creditTemp.getInterestDebtSum())
-                                .lastInterestUpdate(LocalDateTime.now())
-                                .currency(creditTemp.getCurrency())
-                                .cardAccount(creditTemp.getCardAccount())
-                                .currentDebtSum(creditTemp.getInitialDebt())
-                                .userId(creditTemp.getUserId())
-                                .build();
-
-                        credit = creditRepository.save(credit);
-
-                        CreditRating creditRating = new CreditRating();
-                        creditRating.setRating(BigDecimal.valueOf(100));
-                        creditRating.setUserId(credit.getUserId());
-                        creditRatingRepository.save(creditRating);
-                    }
-
-                    creditTempRepository.deleteById(creditTemp.getId());
+                if (isCompletedCreditCreation(transactionKafkaDto)) {
+                    createCreditFromTemp(transactionKafkaDto);
 
                     IdempotencyKey idempotencyKey = IdempotencyKey.builder().id(eventTransactionDto.getId()).build();
                     idempotencyKeyRepository.save(idempotencyKey);
@@ -104,41 +76,14 @@ public class KafkaMessageListener {
                     return;
                 }
 
-                if (transactionKafkaDto.getAction().equals("РџРѕРіР°С€РµРЅРёРµ РєСЂРµРґРёС‚Р°")) {
+                if (isCreditPayback(transactionKafkaDto)) {
                     PaymentHistoryRecord paymentHistoryRecord = paymentHistoryRecordRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
                     paymentHistoryRecord.setTransactionStatus(transactionKafkaDto.getTransactionStatus());
                     paymentHistoryRecordRepository.save(paymentHistoryRecord);
-                }
 
-                if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-                        && transactionKafkaDto.getAction().equals("РџРѕРіР°С€РµРЅРёРµ РєСЂРµРґРёС‚Р°")) {
-                    creditService.makeEnrollment(transactionKafkaDto.getAccountId(), transactionKafkaDto.getMoney());
-                }
-
-                if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
-                        && transactionKafkaDto.getAction().equals("РЎРѕР·РґР°РЅРёРµ РєСЂРµРґРёС‚Р°")) {
-
-                    CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
-
-                    Credit credit = Credit.builder()
-                            .creditRule(creditTemp.getCreditRule())
-                            .initialDebt(creditTemp.getInitialDebt())
-                            .interestDebtSum(creditTemp.getInterestDebtSum())
-                            .lastInterestUpdate(LocalDateTime.now())
-                            .currency(creditTemp.getCurrency())
-                            .cardAccount(creditTemp.getCardAccount())
-                            .currentDebtSum(creditTemp.getInitialDebt())
-                            .userId(creditTemp.getUserId())
-                            .build();
-
-                    credit = creditRepository.save(credit);
-
-                    CreditRating creditRating = new CreditRating();
-                    creditRating.setRating(BigDecimal.valueOf(100));
-                    creditRating.setUserId(credit.getUserId());
-                    creditRatingRepository.save(creditRating);
-
-                    creditTempRepository.deleteById(creditTemp.getId());
+                    if (transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)) {
+                        creditService.makeEnrollment(transactionKafkaDto.getAccountId(), transactionKafkaDto.getMoney());
+                    }
                 }
 
                 IdempotencyKey idempotencyKey = IdempotencyKey.builder().id(eventTransactionDto.getId()).build();
@@ -164,5 +109,44 @@ public class KafkaMessageListener {
             ));
             TraceContext.clear();
         }
+    }
+
+    private boolean isCompletedCreditCreation(TransactionKafkaDto transactionKafkaDto) {
+        return transactionKafkaDto.getTransactionStatus().equals(TransactionStatus.COMPLETE)
+                && transactionKafkaDto.getTransactionType().equals(TransactionType.ENROLLMENT)
+                && transactionKafkaDto.getSourceId() != null
+                && creditTempRepository.existsById(transactionKafkaDto.getSourceId());
+    }
+
+    private boolean isCreditPayback(TransactionKafkaDto transactionKafkaDto) {
+        return transactionKafkaDto.getTransactionType().equals(TransactionType.WITHDRAWAL)
+                && transactionKafkaDto.getSourceId() != null
+                && paymentHistoryRecordRepository.existsById(transactionKafkaDto.getSourceId());
+    }
+
+    private void createCreditFromTemp(TransactionKafkaDto transactionKafkaDto) {
+        CreditTemp creditTemp = creditTempRepository.findById(transactionKafkaDto.getSourceId()).orElseThrow();
+
+        if (!creditRepository.existsByCardAccount(creditTemp.getCardAccount())) {
+            Credit credit = Credit.builder()
+                    .creditRule(creditTemp.getCreditRule())
+                    .initialDebt(creditTemp.getInitialDebt())
+                    .interestDebtSum(creditTemp.getInterestDebtSum())
+                    .lastInterestUpdate(LocalDateTime.now())
+                    .currency(creditTemp.getCurrency())
+                    .cardAccount(creditTemp.getCardAccount())
+                    .currentDebtSum(creditTemp.getInitialDebt())
+                    .userId(creditTemp.getUserId())
+                    .build();
+
+            credit = creditRepository.save(credit);
+
+            CreditRating creditRating = new CreditRating();
+            creditRating.setRating(BigDecimal.valueOf(100));
+            creditRating.setUserId(credit.getUserId());
+            creditRatingRepository.save(creditRating);
+        }
+
+        creditTempRepository.deleteById(creditTemp.getId());
     }
 }

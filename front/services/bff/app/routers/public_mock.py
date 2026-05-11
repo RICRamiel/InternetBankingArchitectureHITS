@@ -473,7 +473,7 @@ async def get_credit_rating_by_user_mock(
         return _unauth()
     if not _can_access_user_path(user, userId):
         return _forbidden()
-    return {"id": str(uuid4()), "userId": str(userId), "rating": 5.0}
+    return {"id": str(uuid4()), "userId": str(userId), "rating": 53.12}
 
 
 @router.get("/credit-service/credit/{cardAccountId}/get_by_card_account")

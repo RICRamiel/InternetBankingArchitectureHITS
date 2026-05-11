@@ -17,3 +17,8 @@ export type { SsoRegistrationFormInput } from "./forms/validate-sso-register";
 export { validateSsoRegistrationForm } from "./forms/validate-sso-register";
 export type { SsoLoginFormInput } from "./forms/validate-sso-login";
 export { validateSsoLoginForm } from "./forms/validate-sso-login";
+export type { BffClientOptions } from "./lib/bff-fetch-base-query";
+export type {
+  FrontendMetric,
+  FrontendMonitoringOptions,
+} from "./lib/frontend-monitoring";

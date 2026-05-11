@@ -3,8 +3,13 @@ import { generatedSsoApi, initSsoBffApi } from "@fins/api/sso";
 import { apiErrorListener } from "./app/apiErrorListener";
 
 initSsoBffApi({
-  
   baseUrl: import.meta.env.VITE_BFF_URL ?? "/api",
+  monitoring: {
+    enabled: import.meta.env.VITE_FRONTEND_MONITORING_ENABLED !== "false",
+    serviceName: "sso-frontend",
+    captureWindowErrors:
+      import.meta.env.VITE_FRONTEND_MONITORING_CAPTURE_ERRORS === "true",
+  },
 });
 
 export const store = configureStore({

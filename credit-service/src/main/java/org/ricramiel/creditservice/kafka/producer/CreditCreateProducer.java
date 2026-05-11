@@ -9,10 +9,12 @@ import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.common.tracing.MonitoringEventPublisher;
 import org.ricramiel.common.tracing.TraceContext;
 import org.ricramiel.common.tracing.TraceHeaders;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.creditservice.model.OutboxEvent;
 import org.ricramiel.creditservice.repository.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,6 +34,14 @@ public class CreditCreateProducer {
     private final ObjectMapper objectMapper;
     private final MonitoringEventPublisher monitoringEventPublisher;
 
+    @Value("${chaos.kafka.enabled:false}")
+    private boolean kafkaChaosEnabled;
+
+    @Value("${chaos.kafka.even-minute-threshold:70}")
+    private int kafkaEvenMinuteThreshold;
+
+    @Value("${chaos.kafka.odd-minute-threshold:30}")
+    private int kafkaOddMinuteThreshold;
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
     public void eventProcessing() {
@@ -56,6 +66,7 @@ public class CreditCreateProducer {
             EventTransactionDto event = objectMapper.readValue(outboxEventEntity.getPayload(), EventTransactionDto.class);
             trace = TraceHeaders.openFrom(event);
             event.setParentSpanId(trace.spanId());
+            ChaosUtil.simulateKafkaSendError(kafkaChaosEnabled, kafkaEvenMinuteThreshold, kafkaOddMinuteThreshold);
             var sendResult =
             kafkaTemplate.send(
                     outboxEventEntity.getOutboxTopic(),
@@ -66,7 +77,7 @@ public class CreditCreateProducer {
                     trace, MonitoringEventPublisher.KAFKA_PRODUCER, "SEND", null,
                     outboxEventEntity.getOutboxTopic(), System.currentTimeMillis() - start,
                     200, false, null));
-        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
+        } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }

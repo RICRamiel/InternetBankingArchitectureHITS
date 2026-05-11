@@ -1,5 +1,9 @@
 # BFF (FastAPI)
 
+Frontend metrics are accepted at `/api/monitoring/metrics` and
+`/api/monitoring/metrics/batch`, then proxied to `MONITORING_SERVICE_BASE_URL`.
+The browser should not call monitoring-service directly.
+
 Прокси между браузером и основным бекендом (API Gateway), плюс SSO-сессия (cookie), опционально — мок банка без gateway.
 
 ## Требования

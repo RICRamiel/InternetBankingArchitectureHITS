@@ -7,15 +7,15 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.ricramiel.common.util.ChaosUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Random;
 import java.util.Set;
 
-//@Component
+@Component
 @Order(1)
 public class ChaosFilter implements Filter {
     private static final Set<String> SWAGGER_PREFIXES = Set.of(
@@ -25,7 +25,17 @@ public class ChaosFilter implements Filter {
             "/webjars"
     );
 
-    private final Random random = new Random();
+    @Value("${chaos.http.enabled:false}")
+    private boolean enabled;
+
+    @Value("${chaos.http.even-minute-threshold:70}")
+    private int evenMinuteThreshold;
+
+    @Value("${chaos.http.odd-minute-threshold:30}")
+    private int oddMinuteThreshold;
+
+    @Value("${chaos.http.status:500}")
+    private int status;
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -36,14 +46,8 @@ public class ChaosFilter implements Filter {
             chain.doFilter(request, response);
             return;
         }
-        int currentMinute = LocalDateTime.now().getMinute();
-        boolean isEvenMinute = currentMinute % 2 == 0;
-        int errorThreshold = isEvenMinute ? 70 : 30;
-
-        int randomValue = random.nextInt(100);
-        if (randomValue < errorThreshold) {
-            httpResponse.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Simulated Chaos Error (Threshold: " + errorThreshold + "%)");
+        if (enabled && ChaosUtil.shouldSimulateError(evenMinuteThreshold, oddMinuteThreshold)) {
+            httpResponse.sendError(status, "Simulated Chaos Error");
             return;
         }
         chain.doFilter(request, response);

@@ -8,11 +8,13 @@ import {
   createBffFetchBaseQuery,
   type BffClientOptions,
 } from "../../lib/bff-fetch-base-query";
+import { configureFrontendMonitoring } from "../../lib/frontend-monitoring";
 
 let bffOptions: BffClientOptions = { baseUrl: "/" };
 
 export function initSsoBffApi(options: BffClientOptions): void {
   bffOptions = options;
+  configureFrontendMonitoring(options.monitoring, options.baseUrl);
 }
 
 const ssoBaseQuery: BaseQueryFn<

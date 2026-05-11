@@ -566,10 +566,79 @@ async def transfer_money(
 ):
     if ctx.record is None or user is None:
         return _unauth()
-    if body.targetKind == "CREDIT":
-        return _not_impl(
-            "Перевод на кредит в upstream-режиме пока не сопоставлен с API шлюза"
+
+    async def _handle_credit_payback():
+        if body.targetCreditId is None:
+            return bff_error_response(400, message="Invalid transfer data")
+
+        credits_response = await ctx.call_upstream(
+            lambda c, uid=user.id: upstream_credits_by_user.asyncio_detailed(
+                client=c, user_id=uid
+            )
         )
+        if credits_response is None:
+            return _unauth()
+        if int(credits_response.status_code) != 200:
+            return finish_upstream_response(credits_response)
+
+        credits = credits_response.parsed or []
+        credit = next(
+            (
+                item
+                for item in credits
+                if item.id is not UNSET and item.id == body.targetCreditId
+            ),
+            None,
+        )
+        if credit is None:
+            return bff_error_response(404, message="Credit not found")
+        if credit.card_account is UNSET or credit.card_account is None:
+            return bff_error_response(400, message="Credit is not linked to an account")
+        if (
+            body.fromCardAccountId is not None
+            and body.fromCardAccountId != credit.card_account
+        ):
+            return bff_error_response(
+                400,
+                message="Credit payback in upstream mode supports only the account linked to the credit",
+            )
+        if (
+            credit.currency is not UNSET
+            and credit.currency is not None
+            and body.amountCurrency.root.upper() != str(credit.currency).upper()
+        ):
+            return bff_error_response(
+                400,
+                message="Credit payback in upstream mode does not support currency conversion",
+            )
+
+        r = await ctx.call_upstream(
+            lambda c, cid=credit.card_account, m=body.amount: upstream_make_enrollment.asyncio_detailed(
+                client=c,
+                card_account_id=cid,
+                money=m,
+            )
+        )
+        if r is None:
+            return _unauth()
+        ok = int(r.status_code) == 200
+        out = finish_upstream_response(r, empty_200=True)
+        if isinstance(out, JSONResponse):
+            return out
+        if ok:
+            schedule_upstream_tx_broadcast(
+                background_tasks,
+                app=request.app,
+                settings=settings,
+                session_cookie=session_cookie,
+                account_ids=[credit.card_account],
+            )
+        if isinstance(out, Response):
+            return out
+        return Response(status_code=200)
+
+    if body.targetKind == "CREDIT":
+        return await _handle_credit_payback()
     if body.targetKind != "ACCOUNT" or body.targetCardAccountId is None:
         return bff_error_response(400, message="Некорректные данные")
 

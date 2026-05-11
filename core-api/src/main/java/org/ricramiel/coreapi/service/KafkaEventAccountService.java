@@ -9,8 +9,10 @@ import org.ricramiel.common.enums.OutboxStatus;
 import org.ricramiel.common.tracing.MonitoringEventPublisher;
 import org.ricramiel.common.tracing.TraceContext;
 import org.ricramiel.common.tracing.TraceHeaders;
+import org.ricramiel.common.util.ChaosUtil;
 import org.ricramiel.coreapi.entity.OutboxAccountEvent;
 import org.ricramiel.coreapi.repository.OutboxAccountEventRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +31,15 @@ public class KafkaEventAccountService {
     private final OutboxAccountEventRepository outboxAccountEventRepository;
     private final ObjectMapper  objectMapper;
     private final MonitoringEventPublisher monitoringEventPublisher;
+
+    @Value("${chaos.kafka.enabled:false}")
+    private boolean kafkaChaosEnabled;
+
+    @Value("${chaos.kafka.even-minute-threshold:70}")
+    private int kafkaEvenMinuteThreshold;
+
+    @Value("${chaos.kafka.odd-minute-threshold:30}")
+    private int kafkaOddMinuteThreshold;
 
     @Scheduled(fixedRateString = "${outbox.scheduled}")
     public void eventProcessing() {
@@ -54,6 +65,7 @@ public class KafkaEventAccountService {
             EventAccountCreate event = objectMapper.readValue(outboxEventEntity.getPayload(), EventAccountCreate.class);
             trace = TraceHeaders.openFrom(event);
             event.setParentSpanId(trace.spanId());
+            ChaosUtil.simulateKafkaSendError(kafkaChaosEnabled, kafkaEvenMinuteThreshold, kafkaOddMinuteThreshold);
             CompletableFuture<SendResult<String, EventAccountCreate>> sendResult = template.send(
                     outboxEventEntity.getOutboxTopic(),
                     event);
@@ -64,7 +76,7 @@ public class KafkaEventAccountService {
                     outboxEventEntity.getOutboxTopic(), System.currentTimeMillis() - start,
                     200, false, null));
             return true;
-        } catch (InterruptedException | ExecutionException | JsonProcessingException e) {
+        } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
