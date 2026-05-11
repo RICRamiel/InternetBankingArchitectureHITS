@@ -289,8 +289,6 @@ async def get_users_directory(
 ):
     if ctx.record is None or user is None:
         return _unauth()
-    if not is_worker_user(user):
-        return _forbidden()
     ur = await ctx.call_upstream(
         lambda c: upstream_all_users.asyncio_detailed(client=c)
     )
